@@ -1,10 +1,11 @@
 # CG 2025/2026
 
-## Group T0xG0y
+## Group T02G02
 | Name             | Number    | E-Mail             |
 | ---------------- | --------- | ------------------ |
-| John Doe         | 201901010 | ...                |
-| Jane Doe         | 201901011 | ...                |
+| Tomás Freire     | 202306202 | ...                |
+| João Martins     | 202207341 | ...                |
+| Tiago Almeida    | 202303450 | ...                |
 
 ----
 
