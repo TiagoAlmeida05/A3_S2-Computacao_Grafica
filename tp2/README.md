@@ -1,8 +1,8 @@
 # CG 2025/2026
 
-## Group T0xG0y
+## Group T02G02
 
-## TP 1 Notes
+## TP 2 Notes
 
 (add your main observations/remarks about your experiments here, in a bulleted list, and remove this line. Some examples below)
 
