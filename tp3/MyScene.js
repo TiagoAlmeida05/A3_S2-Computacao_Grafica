@@ -2,8 +2,8 @@ import { CGFscene, CGFcamera, CGFaxis, CGFappearance } from "../lib/CGF.js";
 import { MyPyramid } from "./MyPyramid.js";
 import { MyCone } from "./MyCone.js";
 import { MyPlane } from "./MyPlane.js";
-import { MyTangram } from "../tp2/MyTangram.js";
-import { MyUnitCubeQuad } from "../tp2/MyUnitCubeQuad.js";
+import { MyTangram } from "./MyTangram.js";
+import { MyUnitCube } from "./MyUnitCube.js";
 
 /**
 * MyScene
@@ -43,12 +43,12 @@ export class MyScene extends CGFscene {
         this.cone = new MyCone(this, 3, 1);
         this.pyramid = new MyPyramid(this, 3, 1);
         this.tangram = new MyTangram(this);
-        this.cubeq = new MyUnitCubeQuad(this); 
+        this.cube = new MyUnitCube(this); 
         
-        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.cubeq];
+        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.cube];
 
         // Labels and ID's for object selection on MyInterface
-        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'CubeQ' : 4};
+        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'Cube' : 4};
 
     }
     initLights() {
