@@ -47,5 +47,3 @@ export class MyCone extends CGFobject {
         this.initNormalVizBuffers();
     }
 }
-
-

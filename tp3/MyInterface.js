@@ -60,6 +60,9 @@ export class MyInterface extends CGFinterface {
         f2.addColor(this.scene.customMaterialValues,'Specular').onChange(this.scene.updateCustomMaterial.bind(this.scene));
         f2.add(this.scene.customMaterialValues,'Shininess', 0, 100).onChange(this.scene.updateCustomMaterial.bind(this.scene));
 
+        var f3 = this.gui.addFolder('Control Ambient Light Intensity');
+        f3.add(this.scene, 'ambientLightIntensity', 0, 1.0).onChange(this.scene.updateGlobalAmbientLight.bind(this.scene));
+
         return true;
     }
 

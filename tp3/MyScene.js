@@ -14,16 +14,17 @@ export class MyScene extends CGFscene {
         super();
     }
     init(application) {
-        //Other variables connected to MyInterface
+        super.init(application);
+        
+        //Other variables connected to MyInterface - initialize before initLights()
         this.selectedObject = 0;
         this.selectedMaterial = 0;
         this.displayAxis = true;
         this.displayNormals = false;
         this.objectComplexity = 0.5;
         this.scaleFactor = 2.0;
-        this.globalAmbientIntensity = 0.3;
+        this.ambientLightIntensity = 0.3;
         
-        super.init(application);
         this.initCameras();
         this.initLights();
         this.initMaterials();
@@ -42,18 +43,14 @@ export class MyScene extends CGFscene {
         this.cone = new MyCone(this, 3, 1);
         this.pyramid = new MyPyramid(this, 3, 1);
         this.tangram = new MyTangram(this);
-        this.unitCube = new MyUnitCube(this);
+        this.cube = new MyUnitCube(this); 
         
-        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.unitCube];
+        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.cube];
 
         // Labels and ID's for object selection on MyInterface
-        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram': 3, 'UnitCube': 4};
+        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'Cube' : 4};
 
     }
-    updateGlobalAmbientLight() {
-        this.setGlobalAmbientLight(this.globalAmbientIntensity, this.globalAmbientIntensity, this.globalAmbientIntensity, 1.0);
-    }
-
     initLights() {
         this.updateGlobalAmbientLight();
 
@@ -108,6 +105,10 @@ export class MyScene extends CGFscene {
 
     updateObjectComplexity(){
         this.objects[this.selectedObject].updateBuffers(this.objectComplexity);
+    }
+
+    updateGlobalAmbientLight(){
+        this.setGlobalAmbientLight(this.ambientLightIntensity, this.ambientLightIntensity, this.ambientLightIntensity, 1.0);
     }
 
 
