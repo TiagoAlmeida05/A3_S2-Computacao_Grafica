@@ -22,7 +22,7 @@ export class MyScene extends CGFscene {
         this.displayAxis = true;
         this.displayNormals = false;
         this.objectComplexity = 0.5;
-        this.scaleFactor = 0.5;
+        this.scaleFactor = 2.0;
         this.ambientLightIntensity = 0.3;
         
         this.initCameras();
@@ -45,7 +45,7 @@ export class MyScene extends CGFscene {
         this.tangram = new MyTangram(this);
         this.cube = new MyUnitCube(this); 
         
-        this.objects = [this.tangram, this.plane, this.pyramid, this.cone, this.cube];
+        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.cube];
 
         // Labels and ID's for object selection on MyInterface
         this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'Cube' : 4};
