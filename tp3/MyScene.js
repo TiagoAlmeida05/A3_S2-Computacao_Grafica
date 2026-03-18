@@ -4,6 +4,7 @@ import { MyCone } from "./MyCone.js";
 import { MyPlane } from "./MyPlane.js";
 import { MyTangram } from "./MyTangram.js";
 import { MyUnitCube } from "./MyUnitCube.js";
+import { MyPrism } from "./MyPrism.js";
 
 /**
 * MyScene
@@ -22,6 +23,8 @@ export class MyScene extends CGFscene {
         this.displayAxis = true;
         this.displayNormals = false;
         this.objectComplexity = 0.5;
+        this.prismSlices = 8;
+        this.prismStacks = 20;
         this.scaleFactor = 0.5;
         this.ambientLightIntensity = 0.3;
         
@@ -44,11 +47,12 @@ export class MyScene extends CGFscene {
         this.pyramid = new MyPyramid(this, 3, 1);
         this.tangram = new MyTangram(this);
         this.cube = new MyUnitCube(this); 
+        this.prism = new MyPrism(this, this.prismSlices, this.prismStacks);
         
-        this.objects = [this.tangram, this.plane, this.pyramid, this.cone, this.cube];
+        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.cube, this.prism];
 
         // Labels and ID's for object selection on MyInterface
-        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'Cube' : 4};
+        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'Cube' : 4, 'Prism': 5};
 
     }
     initLights() {
@@ -105,7 +109,20 @@ export class MyScene extends CGFscene {
     };
 
     updateObjectComplexity(){
-        this.objects[this.selectedObject].updateBuffers(this.objectComplexity);
+        const obj = this.objects[this.selectedObject];
+        if (obj === this.prism) {
+            this.updatePrismGeometry();
+            return;
+        }
+        if (obj && typeof obj.updateBuffers === 'function') {
+            obj.updateBuffers(this.objectComplexity);
+        }
+    }
+
+    updatePrismGeometry() {
+        if (this.prism) {
+            this.prism.updateSlicesStacks(this.prismSlices, this.prismStacks);
+        }
     }
 
     updateGlobalAmbientLight(){

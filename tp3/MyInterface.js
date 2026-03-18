@@ -27,6 +27,10 @@ export class MyInterface extends CGFinterface {
         this.gui.add(this.scene, 'scaleFactor', 0.1, 10.0).name('Scale');
         this.gui.add(this.scene, 'objectComplexity', 0.01, 1.0).onChange(this.scene.updateObjectComplexity.bind(this.scene));
 
+        var prismFolder = this.gui.addFolder('Prism');
+        prismFolder.add(this.scene, 'prismSlices', 3, 60, 1).name('Slices').onChange(this.scene.updatePrismGeometry.bind(this.scene));
+        prismFolder.add(this.scene, 'prismStacks', 1, 30, 1).name('Stacks').onChange(this.scene.updatePrismGeometry.bind(this.scene));
+
         this.gui.add(this.scene, 'ambientLightIntensity', 0.0, 1.0).name('Global Ambient Light').onChange(this.scene.updateGlobalAmbientLight.bind(this.scene));
 
         this.gui.add(this.scene, 'selectedMaterial', this.scene.materialIDs).name('Selected Material');
