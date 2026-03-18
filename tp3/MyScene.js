@@ -5,6 +5,7 @@ import { MyPlane } from "./MyPlane.js";
 import { MyTangram } from "./MyTangram.js";
 import { MyUnitCube } from "./MyUnitCube.js";
 import { MyPrism } from "./MyPrism.js";
+import { MyCylinder } from "./MyCylinder.js";
 
 /**
 * MyScene
@@ -25,7 +26,7 @@ export class MyScene extends CGFscene {
         this.objectComplexity = 0.5;
         this.prismSlices = 8;
         this.prismStacks = 20;
-        this.scaleFactor = 0.5;
+        this.scaleFactor = 2;
         this.ambientLightIntensity = 0.3;
         
         this.initCameras();
@@ -48,11 +49,12 @@ export class MyScene extends CGFscene {
         this.tangram = new MyTangram(this);
         this.cube = new MyUnitCube(this); 
         this.prism = new MyPrism(this, this.prismSlices, this.prismStacks);
-        
-        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.cube, this.prism];
+        this.cylinder = new MyCylinder(this, this.prismSlices, this.prismStacks);
+
+        this.objects = [this.plane, this.pyramid, this.cone, this.tangram, this.cube, this.prism, this.cylinder];
 
         // Labels and ID's for object selection on MyInterface
-        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'Cube' : 4, 'Prism': 5};
+        this.objectIDs = { 'Plane': 0 , 'Pyramid': 1, 'Cone': 2, 'Tangram' : 3, 'Cube' : 4, 'Prism': 5, "Cylinder": 6};
 
     }
     initLights() {
@@ -114,10 +116,15 @@ export class MyScene extends CGFscene {
             this.updatePrismGeometry();
             return;
         }
+        if (obj === this.cylinder) {
+            this.cylinder.updateSlicesStacks(this.prismSlices, this.prismStacks);
+            return;
+        }
         if (obj && typeof obj.updateBuffers === 'function') {
             obj.updateBuffers(this.objectComplexity);
         }
     }
+
 
     updatePrismGeometry() {
         if (this.prism) {
