@@ -23,7 +23,7 @@ export class MyScene extends CGFscene {
         this.displayAxis = true;
         this.displayNormals = false;
         this.objectComplexity = 0.5;
-        this.prismSlices = 8;
+        this.prismSlices = 6;
         this.prismStacks = 20;
         this.scaleFactor = 0.5;
         this.ambientLightIntensity = 0.3;
