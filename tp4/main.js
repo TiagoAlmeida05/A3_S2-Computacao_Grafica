@@ -18,5 +18,4 @@ function main()
 
     app.run();
 }
-
 main();
