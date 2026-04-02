@@ -21,8 +21,16 @@ export class MyTangram extends CGFobject {
         this.triangle = new MyTriangle(scene);
         this.parallelogram = new MyParallelogram(scene);
         this.triangleSmall = new MyTriangleSmall(scene);
-        this.triangleSmall1 = new MyTriangleSmall(scene);
-        this.triangleBig = new MyTriangleBig(scene);
+        this.triangleSmall1 = new MyTriangleSmall(scene, [
+            0, 0,
+            0.25, 0.25,
+            0, 0.5
+        ]);
+        this.triangleBig = new MyTriangleBig(scene,[
+            1, 1,
+            1, 0,
+            0.5, 0.5
+        ]);
         this.triangleBig1 = new MyTriangleBig(scene);
 
     }
@@ -39,40 +47,40 @@ export class MyTangram extends CGFobject {
         this.scene.pushMatrix();
         this.scene.translate(-2.5, -1, 0);
         this.scene.rotate(Math.PI/4, 0, 0, 1);
-        this.materialPi.apply();
+        this.triangleMaterial.apply();
         this.triangle.display();
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(-1, -1, 0);
         this.scene.rotate(Math.PI, 1, 0, 0);        
-        this.materialY.apply();
+        this.parallelogramMaterial.apply();
         this.parallelogram.display();
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(2.5, -2, 0);
         this.scene.rotate(Math.PI, 0, 0, 1);
-        this.materialPu.apply();
+        this.triangleSmallMaterial.apply();
         this.triangleSmall.display();
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(-4.5, -1, 0);
-        this.materialR.apply();
+        this.triangleSmall1Material.apply();
         this.triangleSmall1.display();
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(-1, -1, 0);
-        this.materialB.apply();
+        this.triangleBigMaterial.apply();
         this.triangleBig.display();
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(0, 2, 0);
         this.scene.rotate(Math.PI, 0, 0, 1);
-        this.materialO.apply();
+        this.triangleBig1Material.apply();
         this.triangleBig1.display();
         this.scene.popMatrix();
     }
@@ -155,6 +163,60 @@ export class MyTangram extends CGFobject {
         this.diamondMaterial.setShininess(10.0);
         this.diamondMaterial.loadTexture('images/tangram.png');
         this.diamondMaterial.setTextureWrap('REPEAT', 'REPEAT');
+
+        // Triangle Material
+        this.triangleMaterial = new CGFappearance(this.scene);
+        this.triangleMaterial.setAmbient(0.1, 0.1, 0.1, 1);
+        this.triangleMaterial.setDiffuse(0.9, 0.9, 0.9, 1);
+        this.triangleMaterial.setSpecular(0.1, 0.1, 0.1, 1);
+        this.triangleMaterial.setShininess(10.0);
+        this.triangleMaterial.loadTexture('images/tangram.png');
+        this.triangleMaterial.setTextureWrap('REPEAT', 'REPEAT');
+
+        // Parallelogram Material
+        this.parallelogramMaterial = new CGFappearance(this.scene);
+        this.parallelogramMaterial.setAmbient(0.1, 0.1, 0.1, 1);
+        this.parallelogramMaterial.setDiffuse(0.9, 0.9, 0.9, 1);
+        this.parallelogramMaterial.setSpecular(0.1, 0.1, 0.1, 1);
+        this.parallelogramMaterial.setShininess(10.0);
+        this.parallelogramMaterial.loadTexture('images/tangram.png');
+        this.parallelogramMaterial.setTextureWrap('REPEAT', 'REPEAT');  
+
+        // Triangle Small Material
+        this.triangleSmallMaterial = new CGFappearance(this.scene);
+        this.triangleSmallMaterial.setAmbient(0.1, 0.1, 0.1, 1);
+        this.triangleSmallMaterial.setDiffuse(0.9, 0.9, 0.9, 1);
+        this.triangleSmallMaterial.setSpecular(0.1, 0.1, 0.1, 1);
+        this.triangleSmallMaterial.setShininess(10.0);
+        this.triangleSmallMaterial.loadTexture('images/tangram.png');
+        this.triangleSmallMaterial.setTextureWrap('REPEAT', 'REPEAT');
+        
+        // Triangle Small 1 Material    
+        this.triangleSmall1Material = new CGFappearance(this.scene);
+        this.triangleSmall1Material.setAmbient(0.1, 0.1, 0.1, 1);
+        this.triangleSmall1Material.setDiffuse(0.9, 0.9, 0.9, 1);
+        this.triangleSmall1Material.setSpecular(0.1, 0.1, 0.1, 1);
+        this.triangleSmall1Material.setShininess(10.0);
+        this.triangleSmall1Material.loadTexture('images/tangram.png');
+        this.triangleSmall1Material.setTextureWrap('REPEAT', 'REPEAT');
+        
+        // Triangle Big Material
+        this.triangleBigMaterial = new CGFappearance(this.scene);
+        this.triangleBigMaterial.setAmbient(0.1, 0.1, 0.1, 1);
+        this.triangleBigMaterial.setDiffuse(0.9, 0.9, 0.9, 1);
+        this.triangleBigMaterial.setSpecular(0.1, 0.1, 0.1, 1);
+        this.triangleBigMaterial.setShininess(10.0);
+        this.triangleBigMaterial.loadTexture('images/tangram.png');
+        this.triangleBigMaterial.setTextureWrap('REPEAT', 'REPEAT');
+        
+        // Triangle Big 1 Material
+        this.triangleBig1Material = new CGFappearance(this.scene);
+        this.triangleBig1Material.setAmbient(0.1, 0.1, 0.1, 1);
+        this.triangleBig1Material.setDiffuse(0.9, 0.9, 0.9, 1);
+        this.triangleBig1Material.setSpecular(0.1, 0.1, 0.1, 1);
+        this.triangleBig1Material.setShininess(10.0);
+        this.triangleBig1Material.loadTexture('images/tangram.png');
+        this.triangleBig1Material.setTextureWrap('REPEAT', 'REPEAT');
     }
 }
 

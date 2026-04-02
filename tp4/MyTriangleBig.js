@@ -5,8 +5,13 @@ import {CGFobject} from '../lib/CGF.js';
  * @param scene - Reference to MyScene object
  */
 export class MyTriangleBig extends CGFobject {
-    constructor(scene) {
+    constructor(scene, texCoords = null) {
         super(scene);
+        this.texCoords = texCoords || [
+            0, 0,
+            1, 0,
+            0.5, 0.5
+        ];
         this.initBuffers();
     }
     
