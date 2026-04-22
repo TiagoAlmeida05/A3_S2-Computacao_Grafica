@@ -71,11 +71,11 @@ export class ShaderScene extends CGFscene {
 		this.appearance.setSpecular(0.0, 0.0, 0.0, 1);
 		this.appearance.setShininess(120);
 
-		this.texture = new CGFtexture(this, "textures/texture.jpg");
+		this.texture = new CGFtexture(this, "textures/waterTex.jpg");
 		this.appearance.setTexture(this.texture);
 		this.appearance.setTextureWrap('REPEAT', 'REPEAT');
 
-		this.texture2 = new CGFtexture(this, "textures/FEUP.jpg");
+		this.texture2 = new CGFtexture(this, "textures/waterMap.jpg");
 
 		// shaders initialization
 
@@ -97,6 +97,7 @@ export class ShaderScene extends CGFscene {
 		// additional texture will have to be bound to texture unit 1 later, when using the shader, with "this.texture2.bind(1);"
 		this.testShaders[5].setUniformsValues({ uSampler2: 1 });
 		this.testShaders[6].setUniformsValues({ uSampler2: 1 });
+		this.testShaders[6].setUniformsValues({ timeFactor: 0 });
 		this.testShaders[7].setUniformsValues({ uSampler2: 1 });
 		this.testShaders[8].setUniformsValues({ uSampler2: 1 });
 		this.testShaders[8].setUniformsValues({ timeFactor: 0 });
@@ -196,7 +197,10 @@ export class ShaderScene extends CGFscene {
 
 	// called periodically (as per setUpdatePeriod() in init())
 	update(t) {
-		// only shader 6 is using time factor
+		if (this.selectedExampleShader == 6)
+			this.testShaders[6].setUniformsValues({ timeFactor: t / 100 % 100 });
+
+		// only shader 8 is using time factor
 		if (this.selectedExampleShader == 8)
 			// Dividing the time by 100 "slows down" the variation (i.e. in 100 ms timeFactor increases 1 unit).
 			// Doing the modulus (%) by 100 makes the timeFactor loop between 0 and 99
