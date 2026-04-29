@@ -45,9 +45,9 @@ export class MySphere extends CGFobject {
                 this.vertices.push(x, y, z);
 
                 // Normal (nx, ny, nz)
-                nx = x * lengthInv;
-                ny = y * lengthInv;
-                nz = z * lengthInv;
+                nx = -x * lengthInv;
+                ny = -y * lengthInv;
+                nz = -z * lengthInv;
                 this.normals.push(nx, ny, nz);
 
                 // Coordenadas de textura (s, t)
@@ -68,11 +68,11 @@ export class MySphere extends CGFobject {
             for (let j = 0; j < this.slices; ++j, ++k1, ++k2) {
                 // 2 triângulos por setor (exceto nos polos, mas esta lógica simplificada funciona)
                 if (i !== 0) {
-                    this.indices.push(k1, k2, k1 + 1);
+                    this.indices.push(k1, k1 + 1, k2);
                 }
 
                 if (i !== (this.stacks - 1)) {
-                    this.indices.push(k1 + 1, k2, k2 + 1);
+                    this.indices.push(k1 + 1, k2 + 1, k2);
                 }
             }
         }

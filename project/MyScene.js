@@ -1,4 +1,5 @@
-import { CGFscene, CGFcamera, CGFaxis } from "../lib/CGF.js";
+import { CGFscene, CGFcamera, CGFaxis, CGFappearance } from "../lib/CGF.js";
+import { MyPlane } from "./MyPlane.js";
 import { MySphere } from "./MySphere.js";
 
 
@@ -28,9 +29,24 @@ export class MyScene extends CGFscene {
 
     //Initialize scene objects
     this.axis = new CGFaxis(this);
-    this.sphere = new MySphere(this, 1, 50, 50);
+    this.plane = new MyPlane(this, 200, 100);
+    this.sphere = new MySphere(this, 30, 50, 50);
+    this.pinkAppearance = new CGFappearance(this);
+    this.pinkAppearance.setAmbient(1.0, 0.55, 0.75, 1.0);
+    this.pinkAppearance.setDiffuse(1.0, 0.55, 0.75, 1.0);
+    this.pinkAppearance.setSpecular(1.0, 0.8, 0.9, 1.0);
+    this.pinkAppearance.setEmission(1.0, 0.45, 0.7, 1.0);
+    this.pinkAppearance.setShininess(10.0);
+
+    this.greenAppearance = new CGFappearance(this);
+    this.greenAppearance.setAmbient(0.25, 0.6, 0.25, 1.0);
+    this.greenAppearance.setDiffuse(0.25, 0.6, 0.25, 1.0);
+    this.greenAppearance.setSpecular(0.2, 0.35, 0.2, 1.0);
+    this.greenAppearance.setEmission(0.0, 0.1, 0.0, 1.0);
+    this.greenAppearance.setShininess(10.0);
     //Objects connected to MyInterface
     this.displayAxis = true;
+    this.displayPlane = true;
     this.displaySphere = true;
 
   }
@@ -45,8 +61,8 @@ export class MyScene extends CGFscene {
       0.4,
       0.1,
       500,
-      vec3.fromValues(15, 15, 15),
-      vec3.fromValues(0, 0, 0)
+      vec3.fromValues(0, 1.7, 25),
+      vec3.fromValues(0, 1.0, 24)
     );
   }
   setDefaultAppearance() {
@@ -94,7 +110,11 @@ export class MyScene extends CGFscene {
 
     // ---- BEGIN Primitive drawing section
 
+    this.pinkAppearance.apply();
     if (this.displaySphere) this.sphere.display();
+
+    this.greenAppearance.apply();
+    if (this.displayPlane) this.plane.display();
 
     // ---- END Primitive drawing section
   }
