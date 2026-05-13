@@ -4,28 +4,36 @@ export class MyTerrain extends CGFobject {
   constructor(
     scene,
     size = 200,
-    nDivs = 200,
-    maxHeight = 4,
-    heightmapUrl = "images/heightmaps/heightmap_attempt_1.png",
+    nDivs = 100,
+    maxHeight = 2.0,
     texRepeat = 8,
-    smoothIterations = 1
+    smoothIterations = 1,
+    noiseScale = 0.035,
+    octaves = 4,
+    persistence = 0.5,
+    lacunarity = 2.0,
+    seed = 1337
   ) {
     super(scene);
     this.size = size;
     this.nDivs = nDivs;
     this.maxHeight = maxHeight;
-    this.heightmapUrl = heightmapUrl;
     this.texRepeat = texRepeat;
     this.smoothIterations = smoothIterations;
+    this.noiseScale = noiseScale;
+    this.octaves = octaves;
+    this.persistence = persistence;
+    this.lacunarity = lacunarity;
+    this.seed = seed;
+
+    this.generated = false;
+    this.minHeight = 0;
+    this.maxHeight = 0;
 
     this.heights = new Array((this.nDivs + 1) * (this.nDivs + 1)).fill(0);
-    this.heightmapData = null;
-    this.heightmapWidth = 0;
-    this.heightmapHeight = 0;
-    this.heightmapLoaded = false;
 
     this.initBuffers();
-    this.loadHeightmap();
+    this.generateProceduralHeights(true);
   }
 
   initBuffers() {
@@ -64,36 +72,26 @@ export class MyTerrain extends CGFobject {
     this.initGLBuffers();
   }
 
-  loadHeightmap() {
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const context = canvas.getContext("2d");
-      context.drawImage(image, 0, 0);
-      const imageData = context.getImageData(0, 0, image.width, image.height);
+  generateProceduralHeights(force = false) {
+    if (this.generated && !force) return;
+    this.generated = true;
 
-      this.heightmapData = imageData.data;
-      this.heightmapWidth = image.width;
-      this.heightmapHeight = image.height;
-      this.heightmapLoaded = true;
-
-      this.applyHeightmap();
-    };
-    image.src = this.heightmapUrl;
-  }
-
-  applyHeightmap() {
-    if (!this.heightmapLoaded) return;
+    const halfSize = this.size / 2;
+    const step = this.size / this.nDivs;
+    let minHeight = Infinity;
+    let maxHeight = -Infinity;
 
     for (let row = 0; row <= this.nDivs; row++) {
-      const v = row / this.nDivs;
+      const z = halfSize - row * step;
 
       for (let column = 0; column <= this.nDivs; column++) {
-        const u = column / this.nDivs;
-        const height = this.sampleHeight(u, v) * this.maxHeight;
+        const x = -halfSize + column * step;
+        const noiseValue = this.fbm(x * this.noiseScale, z * this.noiseScale);
+        const height = noiseValue * this.maxHeight;
+
         this.setHeight(column, row, height);
+        minHeight = Math.min(minHeight, height);
+        maxHeight = Math.max(maxHeight, height);
       }
     }
 
@@ -104,37 +102,75 @@ export class MyTerrain extends CGFobject {
     this.updateVerticesFromHeights();
     this.recalculateNormals();
     this.initGLBuffers();
+
+    this.minHeight = minHeight;
+    this.maxHeight = maxHeight;
+
+    console.log("Procedural terrain generated");
+    console.log("Terrain buffers", {
+      vertices: this.vertices.length / 3,
+      indices: this.indices.length
+    });
+    console.log("Terrain params", {
+      size: this.size,
+      nDivs: this.nDivs,
+      maxHeight: this.maxHeight,
+      noiseScale: this.noiseScale,
+      octaves: this.octaves,
+      persistence: this.persistence,
+      lacunarity: this.lacunarity,
+      seed: this.seed,
+      smoothIterations: this.smoothIterations
+    });
+    console.log("Terrain heights", { minHeight, maxHeight });
   }
 
-  sampleHeight(u, v) {
-    const x = u * (this.heightmapWidth - 1);
-    const y = v * (this.heightmapHeight - 1);
+  // Pseudo-random value per integer cell, deterministic by seed.
+  random2D(ix, iz) {
+    const x = ix + this.seed * 0.123;
+    const z = iz + this.seed * 0.456;
+    const value = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
+    return value - Math.floor(value);
+  }
 
+  // Smooth interpolation using cubic Hermite (smoothstep-like).
+  smoothNoise2D(x, z) {
     const x0 = Math.floor(x);
-    const y0 = Math.floor(y);
-    const x1 = Math.min(x0 + 1, this.heightmapWidth - 1);
-    const y1 = Math.min(y0 + 1, this.heightmapHeight - 1);
+    const z0 = Math.floor(z);
+    const x1 = x0 + 1;
+    const z1 = z0 + 1;
 
     const sx = x - x0;
-    const sy = y - y0;
+    const sz = z - z0;
+    const u = sx * sx * (3 - 2 * sx);
+    const v = sz * sz * (3 - 2 * sz);
 
-    const h00 = this.getPixelHeight(x0, y0);
-    const h10 = this.getPixelHeight(x1, y0);
-    const h01 = this.getPixelHeight(x0, y1);
-    const h11 = this.getPixelHeight(x1, y1);
+    const n00 = this.random2D(x0, z0);
+    const n10 = this.random2D(x1, z0);
+    const n01 = this.random2D(x0, z1);
+    const n11 = this.random2D(x1, z1);
 
-    const hx0 = h00 * (1 - sx) + h10 * sx;
-    const hx1 = h01 * (1 - sx) + h11 * sx;
+    const nx0 = n00 * (1 - u) + n10 * u;
+    const nx1 = n01 * (1 - u) + n11 * u;
 
-    return hx0 * (1 - sy) + hx1 * sy;
+    return nx0 * (1 - v) + nx1 * v;
   }
 
-  getPixelHeight(x, y) {
-    const index = (y * this.heightmapWidth + x) * 4;
-    const r = this.heightmapData[index];
-    const g = this.heightmapData[index + 1];
-    const b = this.heightmapData[index + 2];
-    return (r + g + b) / (3 * 255);
+  // Fractal Brownian Motion for softer rolling hills.
+  fbm(x, z) {
+    let value = 0;
+    let amplitude = 1.0;
+    let frequency = 1.0;
+    let maxValue = 0;
+
+    for (let i = 0; i < this.octaves; i++) {
+      value += this.smoothNoise2D(x * frequency, z * frequency) * amplitude;
+      maxValue += amplitude;
+      amplitude *= this.persistence;
+      frequency *= this.lacunarity;
+    }
+
+    return value / Math.max(maxValue, 0.0001);
   }
 
   smoothHeights(iterations) {
@@ -210,5 +246,57 @@ export class MyTerrain extends CGFobject {
     const c = Math.max(0, Math.min(size - 1, col));
     const r = Math.max(0, Math.min(size - 1, row));
     return this.heights[r * size + c];
+  }
+
+  getHeightAt(x, z) {
+    const halfSize = this.size / 2;
+    const u = (x + halfSize) / this.size;
+    const v = (halfSize - z) / this.size;
+
+    const clampedU = Math.max(0, Math.min(1, u));
+    const clampedV = Math.max(0, Math.min(1, v));
+
+    const gridX = clampedU * this.nDivs;
+    const gridZ = clampedV * this.nDivs;
+    const x0 = Math.floor(gridX);
+    const z0 = Math.floor(gridZ);
+    const x1 = Math.min(x0 + 1, this.nDivs);
+    const z1 = Math.min(z0 + 1, this.nDivs);
+
+    const sx = gridX - x0;
+    const sz = gridZ - z0;
+
+    const h00 = this.getHeight(x0, z0);
+    const h10 = this.getHeight(x1, z0);
+    const h01 = this.getHeight(x0, z1);
+    const h11 = this.getHeight(x1, z1);
+
+    const hx0 = h00 * (1 - sx) + h10 * sx;
+    const hx1 = h01 * (1 - sx) + h11 * sx;
+
+    return hx0 * (1 - sz) + hx1 * sz;
+  }
+
+  getMinHeight() {
+    return this.minHeight;
+  }
+
+  getLowPoints(threshold, step = 4) {
+    const points = [];
+    const halfSize = this.size / 2;
+    const gridStep = this.size / this.nDivs;
+
+    for (let row = 0; row <= this.nDivs; row += step) {
+      const z = halfSize - row * gridStep;
+      for (let col = 0; col <= this.nDivs; col += step) {
+        const x = -halfSize + col * gridStep;
+        const height = this.getHeight(col, row);
+        if (height <= threshold) {
+          points.push({ x, z, height });
+        }
+      }
+    }
+
+    return points;
   }
 }
