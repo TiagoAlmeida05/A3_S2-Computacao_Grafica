@@ -1,4 +1,4 @@
-import { CGFscene, CGFcamera, CGFaxis, CGFappearance } from "../lib/CGF.js";
+import { CGFscene, CGFcamera, CGFappearance } from "../lib/CGF.js";
 import { MyPlane } from "./MyPlane.js";
 import { MySphere } from "./MySphere.js";
 
@@ -27,10 +27,8 @@ export class MyScene extends CGFscene {
     this.scaleFactor = 1.0;
 
     // Initialize scene objects
-    this.axis = new CGFaxis(this);
     this.plane = new MyPlane(this, 200, 100);
     this.sky = new MySphere(this, 200, 100, 80, true, false, 1, 1); 
-    this.sunSphere = new MySphere(this, 12, 32, 32, false, false, 1, 1); 
     
     this.cloudRotation = 0;
     this.setUpdatePeriod(50);
@@ -48,10 +46,9 @@ export class MyScene extends CGFscene {
     this.skyAppearance.setSpecular(0.0, 0.0, 0.0, 1.0);
     this.skyAppearance.setEmission(1.0, 1.0, 1.0, 1.0);
     this.skyAppearance.setShininess(1.0);
-    this.skyAppearance.loadTexture('images/sky_panorama.jpg');
+    this.skyAppearance.loadTexture('images/skyline/sky_panorama.jpg');
     this.skyAppearance.setTextureWrap('REPEAT', 'CLAMP_TO_EDGE');
 
-    this.displayAxis = true;
     this.displayPlane = true;
   }
 
@@ -91,9 +88,11 @@ export class MyScene extends CGFscene {
     this.gl.disable(this.gl.DEPTH_TEST);
     this.gl.depthMask(false);
     this.gl.disable(this.gl.CULL_FACE);
-
+    
+    this.translate(0, -5, 0);
     this.scale(1, -1, 1);
     
+
     this.skyAppearance.apply();
     this.sky.display();
     
@@ -103,7 +102,6 @@ export class MyScene extends CGFscene {
     this.gl.enable(this.gl.CULL_FACE); 
     this.popMatrix();
 
-    if (this.displayAxis) this.axis.display();
 
     this.setDefaultAppearance();
 
@@ -118,10 +116,5 @@ export class MyScene extends CGFscene {
     // Draw Ground
     this.greenAppearance.apply();
     if (this.displayPlane) this.plane.display();
-  }
-
-  update(currTime) {
-    this.cloudRotation += 0.0008; // Good speed for drifting sprites
-    if (this.cloudRotation > 2 * Math.PI) this.cloudRotation -= 2 * Math.PI;
   }
 }
