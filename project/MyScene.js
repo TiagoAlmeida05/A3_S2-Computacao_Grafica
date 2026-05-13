@@ -91,12 +91,12 @@ export class MyScene extends CGFscene {
 
 
     this.enableGrass = true;
-    this.enableFlora = true;
-    this.grassPatchCount = 20;
-    this.grassPatchMinScale = 0.35;
-    this.grassPatchMaxScale = 0.6;
-    this.grassBladesMin = 5;
-    this.grassBladesMax = 6;
+    this.enableFlora = false;
+    this.grassPatchCount = 8;
+    this.grassPatchMinScale = 1.0;
+    this.grassPatchMaxScale = 1.6;
+    this.grassBladesMin = 1;
+    this.grassBladesMax = 2;
     this.grassFlatSlope = 0.35;
 
     this.floraCount = 8;
@@ -269,6 +269,7 @@ export class MyScene extends CGFscene {
     });
 
     this.grassPatchInstances = this.generateGrassScatter();
+    console.log("Grass patches generated:", this.grassPatchInstances.length);
 
     const bladesPerPatch = this.grassBladesMax;
     const totalGrassQuads = this.grassPatchInstances.length * bladesPerPatch * 2;
@@ -334,17 +335,26 @@ export class MyScene extends CGFscene {
         this.grassBladesMin + Math.floor(random() * (this.grassBladesMax - this.grassBladesMin + 1));
       for (let b = 0; b < bladeCount; b++) {
         const angle = random() * Math.PI * 2;
-        const radius = 0.18 + 0.2 * random();
+        const radius = 0.03 + 0.08 * random();
         blades.push({
           offsetX: Math.cos(angle) * radius,
           offsetZ: Math.sin(angle) * radius,
           rotation: random() * Math.PI * 2,
-          scale: 0.35 + 0.35 * random(),
+          scale: 0.8 + 0.35 * random(),
           textureIndex: Math.floor(random() * this.grassAppearances.length)
         });
       }
 
-      patches.push({ x, z, y, rotation, scale, tint, blades });
+      patches.push({
+          x,
+          z,
+          y,
+          rotation,
+          scale,
+          tint,
+          textureIndex: Math.floor(random() * this.grassAppearances.length),
+          blades
+        });
     }
 
     return patches;
@@ -507,30 +517,33 @@ export class MyScene extends CGFscene {
   }
 
   displayGrass() {
-    if (!this.enableGrass || !this.grassPatchInstances) return;
+  if (!this.enableGrass || !this.grassPatchInstances) return;
 
-    this.gl.enable(this.gl.BLEND);
-    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-    this.gl.disable(this.gl.CULL_FACE);
-    this.gl.depthMask(false);
+  this.gl.enable(this.gl.BLEND);
+  this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+  this.gl.disable(this.gl.CULL_FACE);
+  this.gl.depthMask(true);
 
-    for (let i = 0; i < this.grassAppearances.length; i++) {
-      const appearance = this.grassAppearances[i];
-      for (const patch of this.grassPatchInstances) {
-        this.pushMatrix();
-        this.translate(patch.x, patch.y - 0.03, patch.z);
-        this.rotate(patch.rotation, 0, 1, 0);
-        this.scale(patch.scale, patch.scale, patch.scale);
-        this.applyTintedTexture(appearance, patch.tint, 1.0);
-        this.grassPatch.display(patch.blades, i);
-        this.popMatrix();
-      }
-    }
+  for (const patch of this.grassPatchInstances) {
+    const textureIndex = patch.textureIndex ?? 0;
+    const appearance = this.grassAppearances[textureIndex];
 
-    this.gl.depthMask(true);
-    this.gl.enable(this.gl.CULL_FACE);
-    this.gl.disable(this.gl.BLEND);
+    this.pushMatrix();
+    this.translate(patch.x, patch.y + 0.02, patch.z);
+    this.rotate(patch.rotation, 0, 1, 0);
+    this.scale(patch.scale, patch.scale, patch.scale);
+
+    appearance.apply();
+    if (patch.blades && patch.blades.length > 0) {
+    this.grassPatch.display(patch.blades, textureIndex);
   }
+
+    this.popMatrix();
+  }
+
+  this.gl.enable(this.gl.CULL_FACE);
+  this.gl.disable(this.gl.BLEND);
+}
 
   displayFlora() {
     if (!this.enableFlora || !this.floraInstances) return;
@@ -540,19 +553,17 @@ export class MyScene extends CGFscene {
     this.gl.disable(this.gl.CULL_FACE);
     this.gl.depthMask(false);
 
-    for (let i = 0; i < this.floraAppearances.length; i++) {
-      const appearance = this.floraAppearances[i];
-      for (const item of this.floraInstances) {
-        if (item.textureIndex !== i) continue;
-        this.pushMatrix();
-        this.translate(item.x, item.y, item.z);
-        this.rotate(item.rotation, 0, 1, 0);
-        this.scale(item.scale, item.scale, item.scale);
-        appearance.apply();
-        this.flora.displayCrossed(item.tilt);
-        this.popMatrix();
-      }
+    const appearance = this.grassAppearances[0];
+    for (const patch of this.grassPatchInstances) {
+      this.pushMatrix();
+      this.translate(patch.x, patch.y, patch.z);
+      this.rotate(patch.rotation, 0, 1, 0);
+      this.scale(patch.scale, patch.scale, patch.scale);
+      this.applyTintedTexture(appearance, patch.tint, 1.0);
+      this.grassPatch.display(patch.blades);
+      this.popMatrix();
     }
+    
 
     this.gl.depthMask(true);
     this.gl.enable(this.gl.CULL_FACE);

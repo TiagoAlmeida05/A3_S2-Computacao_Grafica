@@ -1,20 +1,42 @@
 import { CGFobject } from "../lib/CGF.js";
-import { MyTexturedQuad } from "./MyTexturedQuad.js";
 
 export class MyGrassBlade extends CGFobject {
+
   constructor(scene) {
     super(scene);
-    this.quad = new MyTexturedQuad(scene);
+    this.initBuffers();
   }
 
-  displayCrossed() {
-    this.scene.pushMatrix();
-    this.quad.display();
-    this.scene.popMatrix();
+  initBuffers() {
 
-    this.scene.pushMatrix();
-    this.scene.rotate(Math.PI / 2, 0, 1, 0);
-    this.quad.display();
-    this.scene.popMatrix();
+    this.vertices = [
+      -0.5, 0, 0,
+       0.5, 0, 0,
+      -0.5, 1, 0,
+       0.5, 1, 0
+    ];
+
+    this.indices = [
+      0, 1, 2,
+      1, 3, 2
+    ];
+
+    this.texCoords = [
+      0, 1,
+      1, 1,
+      0, 0,
+      1, 0
+    ];
+
+    this.normals = [
+      0, 0, 1,
+      0, 0, 1,
+      0, 0, 1,
+      0, 0, 1
+    ];
+
+    this.primitiveType = this.scene.gl.TRIANGLES;
+
+    this.initGLBuffers();
   }
 }
