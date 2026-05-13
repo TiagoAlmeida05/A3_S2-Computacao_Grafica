@@ -7,7 +7,9 @@ import { MyLeafyTree } from "./MyLeafyTree.js";
 import { MyDeadTree } from "./MyDeadTree.js";
 import { MyGrassClump } from "./MyGrassClump.js";
 import { MyWaterPond } from "./MyWaterPond.js";
-import { MyBackgroundMountains } from "./MyBackgroundMountains.js";
+import { MyGrassPatch } from "./MyGrassPatch.js";
+import { MyGrassBlade } from "./MyGrassBlade.js";
+import { MyFlora } from "./MyFlora.js";
 
 /**
  * MyScene
@@ -87,26 +89,20 @@ export class MyScene extends CGFscene {
     this.pondMaxRadius = 8.0;
     this.pondDistortion = 0.25;
 
-    this.enableMountainRing = true;
-    this.mountainDistance = 220;
-    this.mountainBaseY = -8;
-    this.mountainOpacity = 0.75;
-    this.mountainHeightBack = 30;
-    this.mountainHeightSide = 24;
-    this.mountainWidthBack = 220;
-    this.mountainWidthSide = 320;
-    this.mountainHeightFront = 12;
-    this.mountainWidthFront = 260;
-    this.mountainFrontBaseY = -10;
-    this.mountainFrontDistance = 230;
-    this.mountainFrontOpacity = 0.45;
-    this.useSingleMountainTexture = false;
-    this.mountainTextures = {
-      back: "images/backgrounds/mountains_back.png",
-      left: "images/backgrounds/mountains_left.png",
-      right: "images/backgrounds/mountains_right.png",
-      front: "images/backgrounds/mountains_front.png"
-    };
+
+    this.enableGrass = true;
+    this.enableFlora = true;
+    this.grassPatchCount = 20;
+    this.grassPatchMinScale = 0.35;
+    this.grassPatchMaxScale = 0.6;
+    this.grassBladesMin = 5;
+    this.grassBladesMax = 6;
+    this.grassFlatSlope = 0.35;
+
+    this.floraCount = 8;
+    this.floraMinScale = 0.7;
+    this.floraMaxScale = 1.6;
+    this.floraFlatSlope = 0.45;
 
     this.skyAppearance = new CGFappearance(this);
     this.skyAppearance.setAmbient(1.0, 1.0, 1.0, 1.0);
@@ -122,7 +118,8 @@ export class MyScene extends CGFscene {
 
     this.initScatterElements();
     this.initWaterPonds();
-    this.initBackgroundMountains();
+    this.initGrassSystem();
+    this.initFloraSystem();
   }
 
   initLights() {
@@ -236,86 +233,6 @@ export class MyScene extends CGFscene {
   
   }
 
-  initBackgroundMountains() {
-  if (!this.enableMountainRing) return;
-
-  this.mountainPlanes = {
-    back: new MyBackgroundMountains(this),
-    left: new MyBackgroundMountains(this),
-    front: new MyBackgroundMountains(this),
-    right: new MyBackgroundMountains(this)
-  };
-
-  this.mountainAppearances = {};
-
-  const texturePaths = this.useSingleMountainTexture
-    ? {
-        back: this.mountainTextures.back,
-        left: this.mountainTextures.back,
-        right: this.mountainTextures.back
-      }
-    : this.mountainTextures;
-
-  Object.entries(texturePaths).forEach(([key, path]) => {
-    const appearance = new CGFappearance(this);
-
-    appearance.setAmbient(0.75, 0.78, 0.85, this.mountainOpacity);
-    appearance.setDiffuse(0.75, 0.78, 0.85, this.mountainOpacity);
-    appearance.setSpecular(0.0, 0.0, 0.0, 1.0);
-    appearance.setEmission(0.0, 0.0, 0.0, 1.0);
-    appearance.setShininess(1.0);
-
-    appearance.loadTexture(path);
-    appearance.setTextureWrap("CLAMP_TO_EDGE", "CLAMP_TO_EDGE");
-
-    this.mountainAppearances[key] = appearance;
-  });
-
-  this.mountainRing = [
-    {
-      key: "back",
-      x: 0,
-      z: -this.mountainDistance,
-      rotY: 0,
-      width: this.mountainWidthBack,
-      height: this.mountainHeightBack,
-      baseY: this.mountainBaseY
-    },
-
-    {
-      key: "left",
-      x: -this.mountainDistance,
-      z: 0,
-      rotY: Math.PI / 2,
-      width: this.mountainWidthSide,
-      height: this.mountainHeightSide,
-      baseY: this.mountainBaseY
-    },
-
-    {
-      key: "right",
-      x: this.mountainDistance,
-      z: 0,
-      rotY: -Math.PI / 2,
-      width: this.mountainWidthSide,
-      height: this.mountainHeightSide,
-      baseY: this.mountainBaseY
-    },
-
-    {
-      key: "front",
-      x: 0,
-      z: this.mountainFrontDistance,
-      rotY: Math.PI,
-      width: this.mountainWidthFront,
-      height: this.mountainHeightFront,
-      baseY: this.mountainFrontBaseY
-    }
-  ].map((entry) => ({
-    ...entry,
-    centerY: entry.baseY + entry.height * 0.5
-  }));
-}  
 
   createSeededRandom(seed) {
     let state = seed >>> 0;
@@ -326,6 +243,171 @@ export class MyScene extends CGFscene {
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
+  }
+
+  initGrassSystem() {
+    if (!this.enableGrass) return;
+
+    this.grassBlade = new MyGrassBlade(this);
+    this.grassPatch = new MyGrassPatch(this);
+    this.grassTextures = [
+      new CGFtexture(this, "images/flora/grass_1.png"),
+      new CGFtexture(this, "images/flora/grass_2.png"),
+      new CGFtexture(this, "images/flora/grass_3.png")
+    ];
+
+    this.grassAppearances = this.grassTextures.map((texture) => {
+      const appearance = new CGFappearance(this);
+      appearance.setAmbient(1.0, 1.0, 1.0, 1.0);
+      appearance.setDiffuse(1.0, 1.0, 1.0, 1.0);
+      appearance.setSpecular(0.0, 0.0, 0.0, 1.0);
+      appearance.setEmission(0.0, 0.0, 0.0, 1.0);
+      appearance.setShininess(1.0);
+      appearance.setTexture(texture);
+      appearance.setTextureWrap("CLAMP_TO_EDGE", "CLAMP_TO_EDGE");
+      return appearance;
+    });
+
+    this.grassPatchInstances = this.generateGrassScatter();
+
+    const bladesPerPatch = this.grassBladesMax;
+    const totalGrassQuads = this.grassPatchInstances.length * bladesPerPatch * 2;
+    const totalFloraQuads = this.enableFlora ? this.floraCount * 2 : 0;
+    console.log("Vegetation init", {
+      grassPatches: this.grassPatchInstances.length,
+      bladesPerPatch,
+      grassQuads: totalGrassQuads,
+      floraCount: this.enableFlora ? this.floraCount : 0,
+      totalTransparentQuads: totalGrassQuads + totalFloraQuads
+    });
+  }
+
+  initFloraSystem() {
+    if (!this.enableFlora) return;
+
+    this.flora = new MyFlora(this);
+    this.floraTextures = [
+      "images/flora/flower_1.png",
+      "images/flora/flower_2.png",
+      "images/flora/fern.png",
+      "images/flora/weed.png",
+      "images/flora/tall_weed.png",
+      "images/flora/small_shrub.png"
+    ].map((path) => new CGFtexture(this, path));
+
+    this.floraAppearances = this.floraTextures.map((texture) => {
+      const appearance = new CGFappearance(this);
+      appearance.setAmbient(1.0, 1.0, 1.0, 1.0);
+      appearance.setDiffuse(1.0, 1.0, 1.0, 1.0);
+      appearance.setSpecular(0.0, 0.0, 0.0, 1.0);
+      appearance.setEmission(0.0, 0.0, 0.0, 1.0);
+      appearance.setShininess(1.0);
+      appearance.setTexture(texture);
+      appearance.setTextureWrap("CLAMP_TO_EDGE", "CLAMP_TO_EDGE");
+      return appearance;
+    });
+
+    this.floraInstances = this.generateFloraScatter();
+  }
+
+  generateGrassScatter() {
+    const patches = [];
+    const random = this.createSeededRandom(20240612);
+    const halfSize = this.terrain.size * 0.5 * 0.95;
+    const attempts = this.grassPatchCount * 10;
+
+    for (let i = 0; i < attempts && patches.length < this.grassPatchCount; i++) {
+      const x = (random() * 2 - 1) * halfSize;
+      const z = (random() * 2 - 1) * halfSize;
+
+      if (Math.hypot(x, z) < this.centerClearRadius) continue;
+      if (this.isInsidePond(x, z)) continue;
+      if (this.getTerrainSlope(x, z) > this.grassFlatSlope) continue;
+
+      const y = this.terrain.getHeightAt(x, z);
+      const scale = this.grassPatchMinScale + (this.grassPatchMaxScale - this.grassPatchMinScale) * random();
+      const rotation = random() * Math.PI * 2;
+      const tint = 0.8 + 0.3 * random();
+
+      const blades = [];
+      const bladeCount =
+        this.grassBladesMin + Math.floor(random() * (this.grassBladesMax - this.grassBladesMin + 1));
+      for (let b = 0; b < bladeCount; b++) {
+        const angle = random() * Math.PI * 2;
+        const radius = 0.18 + 0.2 * random();
+        blades.push({
+          offsetX: Math.cos(angle) * radius,
+          offsetZ: Math.sin(angle) * radius,
+          rotation: random() * Math.PI * 2,
+          scale: 0.35 + 0.35 * random(),
+          textureIndex: Math.floor(random() * this.grassAppearances.length)
+        });
+      }
+
+      patches.push({ x, z, y, rotation, scale, tint, blades });
+    }
+
+    return patches;
+  }
+
+  generateFloraScatter() {
+    const flora = [];
+    const random = this.createSeededRandom(20240613);
+    const halfSize = this.terrain.size * 0.5 * 0.92;
+    const attempts = this.floraCount * 12;
+
+    const anchors = [
+      ...this.rockInstances,
+      ...this.pineInstances,
+      ...this.leafyInstances,
+      ...this.deadInstances
+    ];
+
+    for (let i = 0; i < attempts && flora.length < this.floraCount; i++) {
+      const anchor = anchors[Math.floor(random() * anchors.length)];
+      const offsetAngle = random() * Math.PI * 2;
+      const offsetRadius = 3 + 6 * random();
+      const x = (anchor?.x || 0) + Math.cos(offsetAngle) * offsetRadius;
+      const z = (anchor?.z || 0) + Math.sin(offsetAngle) * offsetRadius;
+
+      if (Math.abs(x) > halfSize || Math.abs(z) > halfSize) continue;
+      if (Math.hypot(x, z) < this.centerClearRadius) continue;
+      if (this.isInsidePond(x, z)) continue;
+      if (this.getTerrainSlope(x, z) > this.floraFlatSlope) continue;
+
+      const y = this.terrain.getHeightAt(x, z);
+      flora.push({
+        x,
+        z,
+        y,
+        rotation: random() * Math.PI * 2,
+        scale: this.floraMinScale + (this.floraMaxScale - this.floraMinScale) * random(),
+        tint: 0.85 + 0.3 * random(),
+        textureIndex: Math.floor(random() * this.floraAppearances.length),
+        tilt: (random() - 0.5) * 0.2
+      });
+    }
+
+    return flora;
+  }
+
+  getTerrainSlope(x, z) {
+    const h = this.terrain.getHeightAt(x, z);
+    const hx = this.terrain.getHeightAt(x + 1.0, z);
+    const hz = this.terrain.getHeightAt(x, z + 1.0);
+    return Math.max(Math.abs(hx - h), Math.abs(hz - h));
+  }
+
+  isInsidePond(x, z) {
+    if (!this.pondInstances) return false;
+    for (const pond of this.pondInstances) {
+      const dx = x - pond.x;
+      const dz = z - pond.z;
+      const nx = dx / pond.scaleX;
+      const nz = dz / pond.scaleZ;
+      if (nx * nx + nz * nz < 1.1) return true;
+    }
+    return false;
   }
 
   generateScatter(count, minScale, maxScale) {
@@ -390,53 +472,6 @@ export class MyScene extends CGFscene {
     this.gl.enable(this.gl.CULL_FACE); 
     this.popMatrix();
 
-    // -----------------------------
-// DRAW MOUNTAINS
-// -----------------------------
-
-if (this.enableMountainRing && this.mountainRing) {
-
-  this.gl.enable(this.gl.BLEND);
-  this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-
-  this.gl.disable(this.gl.CULL_FACE);
-
-  this.gl.depthMask(false);
-
-  for (const plane of this.mountainRing) {
-
-    this.pushMatrix();
-
-    this.translate(
-      plane.x,
-      plane.centerY,
-      plane.z
-    );
-
-    this.rotate(plane.rotY, 0, 1, 0);
-
-    this.rotate(-Math.PI / 2, 1, 0, 0);
-
-    this.scale(
-      plane.width,
-      1,
-      plane.height
-    );
-
-    this.mountainAppearances[plane.key].apply();
-
-    this.mountainPlanes[plane.key].display();
-
-    this.popMatrix();
-  }
-
-  this.gl.depthMask(true);
-
-  this.gl.enable(this.gl.CULL_FACE);
-
-  this.gl.disable(this.gl.BLEND);
-}
-
     if (this.displayAxis) this.axis.display();
 
     this.setDefaultAppearance();
@@ -465,7 +500,69 @@ if (this.enableMountainRing && this.mountainRing) {
 
     this.displayScatter();
 
+    this.displayGrass();
+    this.displayFlora();
+
     this.displayPonds();
+  }
+
+  displayGrass() {
+    if (!this.enableGrass || !this.grassPatchInstances) return;
+
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.depthMask(false);
+
+    for (let i = 0; i < this.grassAppearances.length; i++) {
+      const appearance = this.grassAppearances[i];
+      for (const patch of this.grassPatchInstances) {
+        this.pushMatrix();
+        this.translate(patch.x, patch.y - 0.03, patch.z);
+        this.rotate(patch.rotation, 0, 1, 0);
+        this.scale(patch.scale, patch.scale, patch.scale);
+        this.applyTintedTexture(appearance, patch.tint, 1.0);
+        this.grassPatch.display(patch.blades, i);
+        this.popMatrix();
+      }
+    }
+
+    this.gl.depthMask(true);
+    this.gl.enable(this.gl.CULL_FACE);
+    this.gl.disable(this.gl.BLEND);
+  }
+
+  displayFlora() {
+    if (!this.enableFlora || !this.floraInstances) return;
+
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.depthMask(false);
+
+    for (let i = 0; i < this.floraAppearances.length; i++) {
+      const appearance = this.floraAppearances[i];
+      for (const item of this.floraInstances) {
+        if (item.textureIndex !== i) continue;
+        this.pushMatrix();
+        this.translate(item.x, item.y, item.z);
+        this.rotate(item.rotation, 0, 1, 0);
+        this.scale(item.scale, item.scale, item.scale);
+        appearance.apply();
+        this.flora.displayCrossed(item.tilt);
+        this.popMatrix();
+      }
+    }
+
+    this.gl.depthMask(true);
+    this.gl.enable(this.gl.CULL_FACE);
+    this.gl.disable(this.gl.BLEND);
+  }
+
+  applyTintedTexture(appearance, tint, alpha) {
+    appearance.setAmbient(tint, tint, tint, alpha);
+    appearance.setDiffuse(tint, tint, tint, alpha);
+    appearance.apply();
   }
 
   displayPonds() {
