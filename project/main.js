@@ -11,6 +11,20 @@ function main()
 
     app.init();
 
+    setTimeout(() => {
+        const canvas = document.querySelector("canvas");
+        if (!canvas) return;
+
+        canvas.addEventListener("webglcontextlost", (event) => {
+            event.preventDefault();
+            console.log("WebGL context lost");
+        }, false);
+
+        canvas.addEventListener("webglcontextrestored", () => {
+            console.log("WebGL context restored");
+        }, false);
+    }, 0);
+
     app.setScene(myScene);
     app.setInterface(myInterface);
 
