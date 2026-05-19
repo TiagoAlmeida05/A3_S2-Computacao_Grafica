@@ -1,5 +1,5 @@
-import { CGFscene, CGFcamera, CGFaxis, CGFappearance } from "../lib/CGF.js";
-import { MyPlane } from "./MyPlane.js";
+import { CGFscene, CGFcamera, CGFaxis, CGFappearance, CGFtexture, CGFshader } from "../lib/CGF.js";
+import { MyTerrain } from "./MyTerrain.js";
 import { MySphere } from "./MySphere.js";
 
 /**
@@ -28,19 +28,45 @@ export class MyScene extends CGFscene {
 
     // Initialize scene objects
     this.axis = new CGFaxis(this);
-    this.plane = new MyPlane(this, 200, 100);
+    this.terrain = new MyTerrain(
+      this,
+      200,
+      200,
+      1.5,
+      "images/heightmaps/heightmap_attempt_1.png",
+      8,
+      1
+    );
     this.sky = new MySphere(this, 200, 100, 80, true, false, 1, 1); 
-    this.sunSphere = new MySphere(this, 12, 32, 32, false, false, 1, 1); 
     
     this.cloudRotation = 0;
     this.setUpdatePeriod(50);
 
-    this.greenAppearance = new CGFappearance(this);
-    this.greenAppearance.setAmbient(0.25, 0.6, 0.25, 1.0);
-    this.greenAppearance.setDiffuse(0.25, 0.6, 0.25, 1.0);
-    this.greenAppearance.setSpecular(0.2, 0.35, 0.2, 1.0);
-    this.greenAppearance.setEmission(0.0, 0.1, 0.0, 1.0);
-    this.greenAppearance.setShininess(10.0);
+    this.terrainAppearance = new CGFappearance(this);
+    this.terrainAppearance.setAmbient(0.3, 0.4, 0.3, 1.0);
+    this.terrainAppearance.setDiffuse(0.6, 0.7, 0.6, 1.0);
+    this.terrainAppearance.setSpecular(0.05, 0.05, 0.05, 1.0);
+    this.terrainAppearance.setEmission(0.0, 0.0, 0.0, 1.0);
+    this.terrainAppearance.setShininess(6.0);
+
+    this.grassTexture = new CGFtexture(this, "images/textures/grass_diffuse.jpg");
+    this.dirtTexture = new CGFtexture(this, "images/textures/dirt_diffuse.jpg");
+    this.terrainAppearance.setTexture(this.grassTexture);
+    this.terrainAppearance.setTextureWrap("REPEAT", "REPEAT");
+
+    this.terrainShader = new CGFshader(
+      this.gl,
+      "shaders/terrain.vert",
+      "shaders/terrain.frag"
+    );
+    this.terrainShader.setUniformsValues({
+      uSampler: 0,
+      uSampler2: 1,
+      uMaxHeight: this.terrain.maxHeight,
+      uBlendLow: 0.2,
+      uBlendHigh: 0.7
+    });
+    this.useTerrainShader = false;
 
     this.skyAppearance = new CGFappearance(this);
     this.skyAppearance.setAmbient(1.0, 1.0, 1.0, 1.0);
@@ -48,10 +74,9 @@ export class MyScene extends CGFscene {
     this.skyAppearance.setSpecular(0.0, 0.0, 0.0, 1.0);
     this.skyAppearance.setEmission(1.0, 1.0, 1.0, 1.0);
     this.skyAppearance.setShininess(1.0);
-    this.skyAppearance.loadTexture('images/sky_panorama.jpg');
+    this.skyAppearance.loadTexture('images/skyline/sky_panorama.jpg');
     this.skyAppearance.setTextureWrap('REPEAT', 'CLAMP_TO_EDGE');
 
-    this.displayAxis = true;
     this.displayPlane = true;
   }
 
@@ -91,9 +116,11 @@ export class MyScene extends CGFscene {
     this.gl.disable(this.gl.DEPTH_TEST);
     this.gl.depthMask(false);
     this.gl.disable(this.gl.CULL_FACE);
-
+    
+    this.translate(0, -5, 0);
     this.scale(1, -1, 1);
     
+
     this.skyAppearance.apply();
     this.sky.display();
     
@@ -103,7 +130,6 @@ export class MyScene extends CGFscene {
     this.gl.enable(this.gl.CULL_FACE); 
     this.popMatrix();
 
-    if (this.displayAxis) this.axis.display();
 
     this.setDefaultAppearance();
 
@@ -116,12 +142,17 @@ export class MyScene extends CGFscene {
     this.multMatrix(sca);
 
     // Draw Ground
-    this.greenAppearance.apply();
-    if (this.displayPlane) this.plane.display();
-  }
-
-  update(currTime) {
-    this.cloudRotation += 0.0008; // Good speed for drifting sprites
-    if (this.cloudRotation > 2 * Math.PI) this.cloudRotation -= 2 * Math.PI;
+    if (this.displayPlane) {
+      if (this.useTerrainShader) {
+        this.setActiveShader(this.terrainShader);
+        this.terrainAppearance.apply();
+        this.dirtTexture.bind(1);
+        this.terrain.display();
+        this.setActiveShader(this.defaultShader);
+      } else {
+        this.terrainAppearance.apply();
+        this.terrain.display();
+      }
+    }
   }
 }

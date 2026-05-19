@@ -64,8 +64,7 @@ export class MySphere extends CGFobject {
                 }
 
                 // Coordenadas de textura (s, t)
-                s = j / this.slices;
-                s *= this.texScaleS;
+                s = (j / this.slices) * this.texScaleS;
                 t = (1 - (i / this.stacks)) * this.texScaleT;
                 this.texCoords.push(s, t);
             }
@@ -93,8 +92,9 @@ export class MySphere extends CGFobject {
                     pushTriangle(k1, k1 + 1, k2);
                 }
 
-                if (i !== (this.stacks - 1)) {
-                    pushTriangle(k1 + 1, k2 + 1, k2);
+                if (i !== (this.stacks - 1) || this.half) {
+                    if (this.inside) this.indices.push(k1 + 1, k2, k2 + 1);
+                    else this.indices.push(k1 + 1, k2 + 1, k2);
                 }
             }
         }
