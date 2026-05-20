@@ -121,7 +121,8 @@ export class MyScene extends CGFscene {
   }
 
   initLights() {
-    this.lights[0].setPosition(0, 1, -1, 0);
+    this.lights[0].setPosition(-100, 150, 10, 0); 
+    
     this.lights[0].setAmbient(0.2, 0.2, 0.2, 1.0);
     this.lights[0].setDiffuse(1.0, 0.95, 0.8, 1.0);
     this.lights[0].setSpecular(1.0, 0.95, 0.8, 1.0);
@@ -481,7 +482,6 @@ export class MyScene extends CGFscene {
     this.gl.depthMask(true);
     this.gl.enable(this.gl.CULL_FACE); 
     this.popMatrix();
-
 
     this.setDefaultAppearance();
 
