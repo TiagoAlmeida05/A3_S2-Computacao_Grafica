@@ -41,7 +41,7 @@ export class MyScene extends CGFscene {
       this,
       200,
       100,
-      2.0,
+      10.0,
       8,
       1,
       0.035,
@@ -89,20 +89,28 @@ export class MyScene extends CGFscene {
     this.pondMaxRadius = 8.0;
     this.pondDistortion = 0.25;
 
-
     this.enableGrass = true;
-    this.enableFlora = false;
-    this.grassPatchCount = 8;
-    this.grassPatchMinScale = 1.0;
-    this.grassPatchMaxScale = 1.6;
-    this.grassBladesMin = 1;
-    this.grassBladesMax = 2;
-    this.grassFlatSlope = 0.35;
+    this.enableFlora = true;
+    this.grassPatchCount = 30;
+    this.grassPatchMinScale = 1.6;
+    this.grassPatchMaxScale = 2.8;
+    this.grassBladesMin = 260;
+    this.grassBladesMax = 420;
+    this.grassDeadPatchChance = 0.15;
+    this.grassFlatSlope = 1.0;
+    this.grassMaxDistance = 90;
+    this.grassMaxTotalBlades = 20000;
+    this.grassLodNear = 20;
+    this.grassLodMid = 35;
+    this.grassPatchHeightScale = 0.75;
+
+    this.cameraMove = { forward: false, backward: false };
+    this.cameraSpeed = 0.25;
 
     this.floraCount = 8;
     this.floraMinScale = 0.7;
     this.floraMaxScale = 1.6;
-    this.floraFlatSlope = 0.45;
+    this.floraFlatSlope = 1.2;
 
     this.skyAppearance = new CGFappearance(this);
     this.skyAppearance.setAmbient(1.0, 1.0, 1.0, 1.0);
@@ -248,38 +256,42 @@ export class MyScene extends CGFscene {
   initGrassSystem() {
     if (!this.enableGrass) return;
 
+    const avgBlades = (this.grassBladesMin + this.grassBladesMax) * 0.5;
+    const maxPatches = Math.max(10, Math.floor(this.grassMaxTotalBlades / avgBlades));
+    if (this.grassPatchCount > maxPatches) {
+      this.grassPatchCount = maxPatches;
+      console.log("Grass patch count reduced for budget:", this.grassPatchCount);
+    }
+
     this.grassBlade = new MyGrassBlade(this);
     this.grassPatch = new MyGrassPatch(this);
-    this.grassTextures = [
-      new CGFtexture(this, "images/flora/grass_1.png"),
-      new CGFtexture(this, "images/flora/grass_2.png"),
-      new CGFtexture(this, "images/flora/grass_3.png")
-    ];
 
-    this.grassAppearances = this.grassTextures.map((texture) => {
-      const appearance = new CGFappearance(this);
-      appearance.setAmbient(1.0, 1.0, 1.0, 1.0);
-      appearance.setDiffuse(1.0, 1.0, 1.0, 1.0);
-      appearance.setSpecular(0.0, 0.0, 0.0, 1.0);
-      appearance.setEmission(0.0, 0.0, 0.0, 1.0);
-      appearance.setShininess(1.0);
-      appearance.setTexture(texture);
-      appearance.setTextureWrap("CLAMP_TO_EDGE", "CLAMP_TO_EDGE");
-      return appearance;
-    });
+    this.grassLiveAppearance = new CGFappearance(this);
+    this.grassLiveAppearance.setAmbient(0.2, 0.35, 0.2, 1.0);
+    this.grassLiveAppearance.setDiffuse(0.45, 0.75, 0.4, 1.0);
+    this.grassLiveAppearance.setSpecular(0.02, 0.02, 0.02, 1.0);
+    this.grassLiveAppearance.setShininess(4.0);
+    this.grassLiveAppearance.setTexture(this.grassTexture);
+    this.grassLiveAppearance.setTextureWrap("REPEAT", "REPEAT");
+
+    this.grassDeadAppearance = new CGFappearance(this);
+    this.grassDeadAppearance.setAmbient(0.25, 0.2, 0.12, 1.0);
+    this.grassDeadAppearance.setDiffuse(0.6, 0.5, 0.3, 1.0);
+    this.grassDeadAppearance.setSpecular(0.01, 0.01, 0.01, 1.0);
+    this.grassDeadAppearance.setShininess(3.0);
+    this.grassDeadAppearance.setTexture(this.dirtTexture);
+    this.grassDeadAppearance.setTextureWrap("REPEAT", "REPEAT");
 
     this.grassPatchInstances = this.generateGrassScatter();
     console.log("Grass patches generated:", this.grassPatchInstances.length);
 
     const bladesPerPatch = this.grassBladesMax;
-    const totalGrassQuads = this.grassPatchInstances.length * bladesPerPatch * 2;
-    const totalFloraQuads = this.enableFlora ? this.floraCount * 2 : 0;
+    const totalGrassTris = this.grassPatchInstances.length * bladesPerPatch * 3;
     console.log("Vegetation init", {
       grassPatches: this.grassPatchInstances.length,
       bladesPerPatch,
-      grassQuads: totalGrassQuads,
-      floraCount: this.enableFlora ? this.floraCount : 0,
-      totalTransparentQuads: totalGrassQuads + totalFloraQuads
+      grassTris: totalGrassTris,
+      floraCount: this.enableFlora ? this.floraCount : 0
     });
   }
 
@@ -287,26 +299,29 @@ export class MyScene extends CGFscene {
     if (!this.enableFlora) return;
 
     this.flora = new MyFlora(this);
-    this.floraTextures = [
-      "images/flora/flower_1.png",
-      "images/flora/flower_2.png",
-      "images/flora/fern.png",
-      "images/flora/weed.png",
-      "images/flora/tall_weed.png",
-      "images/flora/small_shrub.png"
-    ].map((path) => new CGFtexture(this, path));
+    this.floraStemAppearance = new CGFappearance(this);
+    this.floraPetalAppearance = new CGFappearance(this);
+    this.floraCenterAppearance = new CGFappearance(this);
 
-    this.floraAppearances = this.floraTextures.map((texture) => {
-      const appearance = new CGFappearance(this);
-      appearance.setAmbient(1.0, 1.0, 1.0, 1.0);
-      appearance.setDiffuse(1.0, 1.0, 1.0, 1.0);
-      appearance.setSpecular(0.0, 0.0, 0.0, 1.0);
-      appearance.setEmission(0.0, 0.0, 0.0, 1.0);
-      appearance.setShininess(1.0);
-      appearance.setTexture(texture);
-      appearance.setTextureWrap("CLAMP_TO_EDGE", "CLAMP_TO_EDGE");
-      return appearance;
-    });
+    this.floraStemPalette = [
+      [0.12, 0.32, 0.14],
+      [0.16, 0.4, 0.18],
+      [0.1, 0.26, 0.12]
+    ];
+
+    this.floraPetalPalette = [
+      [0.95, 0.85, 0.85],
+      [0.95, 0.7, 0.75],
+      [0.9, 0.85, 0.55],
+      [0.75, 0.85, 0.95],
+      [0.85, 0.8, 0.95]
+    ];
+
+    this.floraCenterPalette = [
+      [0.95, 0.85, 0.25],
+      [0.85, 0.6, 0.1],
+      [0.95, 0.75, 0.35]
+    ];
 
     this.floraInstances = this.generateFloraScatter();
   }
@@ -328,33 +343,36 @@ export class MyScene extends CGFscene {
       const y = this.terrain.getHeightAt(x, z);
       const scale = this.grassPatchMinScale + (this.grassPatchMaxScale - this.grassPatchMinScale) * random();
       const rotation = random() * Math.PI * 2;
-      const tint = 0.8 + 0.3 * random();
+      const isDead = random() < this.grassDeadPatchChance;
+      const tint = isDead ? 0.55 + 0.2 * random() : 0.85 + 0.25 * random();
 
       const blades = [];
-      const bladeCount =
+      let bladeCount =
         this.grassBladesMin + Math.floor(random() * (this.grassBladesMax - this.grassBladesMin + 1));
+      if (isDead) bladeCount = Math.max(2, Math.floor(bladeCount * 0.6));
       for (let b = 0; b < bladeCount; b++) {
         const angle = random() * Math.PI * 2;
-        const radius = 0.03 + 0.08 * random();
+        const radius = 0.35 + 0.85 * random();
         blades.push({
           offsetX: Math.cos(angle) * radius,
           offsetZ: Math.sin(angle) * radius,
           rotation: random() * Math.PI * 2,
-          scale: 0.8 + 0.35 * random(),
-          textureIndex: Math.floor(random() * this.grassAppearances.length)
+          leanX: (random() - 0.5) * 0.35,
+          leanZ: (random() - 0.5) * 0.35,
+          scale: 0.6 + 0.35 * random(),
         });
       }
 
       patches.push({
-          x,
-          z,
-          y,
-          rotation,
-          scale,
-          tint,
-          textureIndex: Math.floor(random() * this.grassAppearances.length),
-          blades
-        });
+        x,
+        z,
+        y,
+        rotation,
+        scale,
+        tint,
+        isDead,
+        blades
+      });
     }
 
     return patches;
@@ -386,15 +404,55 @@ export class MyScene extends CGFscene {
       if (this.getTerrainSlope(x, z) > this.floraFlatSlope) continue;
 
       const y = this.terrain.getHeightAt(x, z);
+      const petalCount = 4 + Math.floor(random() * 5);
+      const petalLength = 0.14 + 0.2 * random();
+      const petalWidth = 0.08 + 0.1 * random();
+      const petalTilt = 0.35 + 0.4 * random();
+      const hasSecondary = random() < 0.55;
+
+      const stemHeight = 0.3 + 0.4 * random();
+      const stemRadius = 0.02 + 0.02 * random();
+      const centerRadius = 0.04 + 0.05 * random();
+      const leafCount = 1 + Math.floor(random() * 3);
+      const leafLength = 0.18 + 0.18 * random();
+      const leafWidth = 0.07 + 0.08 * random();
+      const leafTilt = 0.2 + 0.35 * random();
+
+      const stemColor = this.floraStemPalette[
+        Math.floor(random() * this.floraStemPalette.length)
+      ];
+      const petalColor = this.floraPetalPalette[
+        Math.floor(random() * this.floraPetalPalette.length)
+      ];
+      const centerColor = this.floraCenterPalette[
+        Math.floor(random() * this.floraCenterPalette.length)
+      ];
+
       flora.push({
         x,
         z,
         y,
         rotation: random() * Math.PI * 2,
         scale: this.floraMinScale + (this.floraMaxScale - this.floraMinScale) * random(),
-        tint: 0.85 + 0.3 * random(),
-        textureIndex: Math.floor(random() * this.floraAppearances.length),
-        tilt: (random() - 0.5) * 0.2
+        tilt: (random() - 0.5) * 0.25,
+        stemHeight,
+        stemRadius,
+        petalCount,
+        petalLength,
+        petalWidth,
+        petalTilt,
+        petalCount2: hasSecondary ? Math.max(3, petalCount - 1) : 0,
+        petalLength2: petalLength * (0.7 + 0.15 * random()),
+        petalWidth2: petalWidth * (0.7 + 0.15 * random()),
+        petalTilt2: petalTilt * (0.85 + 0.15 * random()),
+        centerRadius,
+        leafCount,
+        leafLength,
+        leafWidth,
+        leafTilt,
+        stemColor,
+        petalColor,
+        centerColor
       });
     }
 
@@ -441,10 +499,10 @@ export class MyScene extends CGFscene {
   }
 
   applyTintedAppearance(appearance, tint) {
-    const base = appearance;
-    const diffuse = base.diffuse;
-    base.setDiffuse(diffuse[0] * tint, diffuse[1] * tint, diffuse[2] * tint, diffuse[3]);
-    base.apply();
+    if (!appearance._baseDiffuse) appearance._baseDiffuse = appearance.diffuse.slice();
+    const diffuse = appearance._baseDiffuse;
+    appearance.setDiffuse(diffuse[0] * tint, diffuse[1] * tint, diffuse[2] * tint, diffuse[3]);
+    appearance.apply();
   }
 
   setDefaultAppearance() {
@@ -456,6 +514,11 @@ export class MyScene extends CGFscene {
 
   display() {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.depthMask(false);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.updateProjectionMatrix();
     this.loadIdentity();
@@ -466,7 +529,6 @@ export class MyScene extends CGFscene {
     const skyMatrix = this.getMatrix();
     skyMatrix[12] = 0; skyMatrix[13] = 0; skyMatrix[14] = 0;
     this.setMatrix(skyMatrix);
-
     this.gl.disable(this.gl.DEPTH_TEST);
     this.gl.depthMask(false);
     this.gl.disable(this.gl.CULL_FACE);
@@ -517,63 +579,77 @@ export class MyScene extends CGFscene {
   }
 
   displayGrass() {
-  if (!this.enableGrass || !this.grassPatchInstances) return;
+    if (!this.enableGrass || !this.grassPatchInstances) return;
 
-  this.gl.enable(this.gl.BLEND);
-  this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-  this.gl.disable(this.gl.CULL_FACE);
-  this.gl.depthMask(true);
+    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.depthMask(true);
 
-  for (const patch of this.grassPatchInstances) {
-    const textureIndex = patch.textureIndex ?? 0;
-    const appearance = this.grassAppearances[textureIndex];
+    const camPos = this.camera?.position;
+    const maxDist = this.grassMaxDistance;
 
-    this.pushMatrix();
-    this.translate(patch.x, patch.y + 0.02, patch.z);
-    this.rotate(patch.rotation, 0, 1, 0);
-    this.scale(patch.scale, patch.scale, patch.scale);
+    for (const patch of this.grassPatchInstances) {
+      let dist = 0;
+      if (camPos && maxDist) {
+        const dx = patch.x - camPos[0];
+        const dz = patch.z - camPos[2];
+        dist = Math.hypot(dx, dz);
+        if (dist > maxDist) continue;
+      }
 
-    appearance.apply();
-    if (patch.blades && patch.blades.length > 0) {
-    this.grassPatch.display(patch.blades, textureIndex);
+      const appearance = patch.isDead ? this.grassDeadAppearance : this.grassLiveAppearance;
+
+      this.pushMatrix();
+      this.translate(patch.x, patch.y + 0.02, patch.z);
+      this.rotate(patch.rotation, 0, 1, 0);
+      this.scale(patch.scale, patch.scale * this.grassPatchHeightScale, patch.scale);
+
+      this.applyTintedAppearance(appearance, patch.tint);
+      if (patch.blades && patch.blades.length > 0) {
+        let bladeLimit = patch.blades.length;
+        if (dist > this.grassLodMid) bladeLimit = Math.floor(bladeLimit * 0.25);
+        else if (dist > this.grassLodNear) bladeLimit = Math.floor(bladeLimit * 0.55);
+
+        this.grassPatch.display(patch.blades, bladeLimit);
+      }
+
+      this.popMatrix();
+    }
+
+    this.gl.enable(this.gl.CULL_FACE);
   }
-
-    this.popMatrix();
-  }
-
-  this.gl.enable(this.gl.CULL_FACE);
-  this.gl.disable(this.gl.BLEND);
-}
 
   displayFlora() {
     if (!this.enableFlora || !this.floraInstances) return;
+    this.gl.disable(this.gl.BLEND);
+    this.gl.enable(this.gl.CULL_FACE);
+    this.gl.depthMask(true);
 
-    this.gl.enable(this.gl.BLEND);
-    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-    this.gl.disable(this.gl.CULL_FACE);
-    this.gl.depthMask(false);
-
-    const appearance = this.grassAppearances[0];
-    for (const patch of this.grassPatchInstances) {
+    for (const flower of this.floraInstances) {
       this.pushMatrix();
-      this.translate(patch.x, patch.y, patch.z);
-      this.rotate(patch.rotation, 0, 1, 0);
-      this.scale(patch.scale, patch.scale, patch.scale);
-      this.applyTintedTexture(appearance, patch.tint, 1.0);
-      this.grassPatch.display(patch.blades);
+      this.translate(flower.x, flower.y, flower.z);
+      this.rotate(flower.rotation, 0, 1, 0);
+      this.rotate(flower.tilt, 1, 0, 0);
+      this.rotate(flower.tilt * 0.5, 0, 0, 1);
+      this.scale(flower.scale, flower.scale, flower.scale);
+
+      this.applyColorToAppearance(this.floraStemAppearance, flower.stemColor, 1.0);
+      this.applyColorToAppearance(this.floraPetalAppearance, flower.petalColor, 1.0);
+      this.applyColorToAppearance(this.floraCenterAppearance, flower.centerColor, 1.0);
+
+      this.flora.displayFlower(flower, {
+        stem: this.floraStemAppearance,
+        petal: this.floraPetalAppearance,
+        center: this.floraCenterAppearance
+      });
       this.popMatrix();
     }
-    
-
-    this.gl.depthMask(true);
-    this.gl.enable(this.gl.CULL_FACE);
-    this.gl.disable(this.gl.BLEND);
   }
 
-  applyTintedTexture(appearance, tint, alpha) {
-    appearance.setAmbient(tint, tint, tint, alpha);
-    appearance.setDiffuse(tint, tint, tint, alpha);
-    appearance.apply();
+  applyColorToAppearance(appearance, color, alpha) {
+    appearance.setAmbient(color[0] * 0.5, color[1] * 0.5, color[2] * 0.5, alpha);
+    appearance.setDiffuse(color[0], color[1], color[2], alpha);
+    appearance.setSpecular(0.05, 0.05, 0.05, alpha);
+    appearance.setShininess(6.0);
   }
 
   displayPonds() {
@@ -660,5 +736,17 @@ export class MyScene extends CGFscene {
   update(currTime) {
     this.cloudRotation += 0.0008; // Good speed for drifting sprites
     if (this.cloudRotation > 2 * Math.PI) this.cloudRotation -= 2 * Math.PI;
+
+    if (this.camera && (this.cameraMove.forward || this.cameraMove.backward)) {
+      const dir = vec3.create();
+      vec3.subtract(dir, this.camera.target, this.camera.position);
+      dir[1] = 0;
+      vec3.normalize(dir, dir);
+      const step = this.cameraSpeed * (this.cameraMove.forward ? 1 : -1);
+
+      vec3.scaleAndAdd(this.camera.position, this.camera.position, dir, step);
+      vec3.scaleAndAdd(this.camera.target, this.camera.target, dir, step);
+      this.camera.updateProjectionMatrix();
+    }
   }
 }

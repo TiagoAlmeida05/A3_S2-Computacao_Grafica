@@ -26,4 +26,16 @@ export class MyInterface extends CGFinterface {
 
         return true;
     }
+
+    processKeyDown(event) {
+        if (!this.scene?.cameraMove) return;
+        if (event.code === 'KeyW') this.scene.cameraMove.forward = true;
+        if (event.code === 'KeyS') this.scene.cameraMove.backward = true;
+    }
+
+    processKeyUp(event) {
+        if (!this.scene?.cameraMove) return;
+        if (event.code === 'KeyW') this.scene.cameraMove.forward = false;
+        if (event.code === 'KeyS') this.scene.cameraMove.backward = false;
+    }
 }
