@@ -1,4 +1,3 @@
-
 import {CGFapplication} from '../lib/CGF.js';
 import { MyScene } from './MyScene.js';
 import { MyInterface } from './MyInterface.js';
@@ -17,11 +16,9 @@ function main()
 
         canvas.addEventListener("webglcontextlost", (event) => {
             event.preventDefault();
-            console.log("WebGL context lost");
         }, false);
 
         canvas.addEventListener("webglcontextrestored", () => {
-            console.log("WebGL context restored");
         }, false);
     }, 0);
 

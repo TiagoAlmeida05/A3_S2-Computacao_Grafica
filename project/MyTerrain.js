@@ -128,23 +128,6 @@ export class MyTerrain extends CGFobject {
     this.minGeneratedHeight = minHeight;
     this.maxGeneratedHeight = maxHeight;
 
-    console.log("Procedural terrain generated");
-    console.log("Terrain buffers", {
-      vertices: this.vertices.length / 3,
-      indices: this.indices.length
-    });
-    console.log("Terrain params", {
-      size: this.size,
-      nDivs: this.nDivs,
-      heightAmplitude: this.heightAmplitude,
-      noiseScale: this.noiseScale,
-      octaves: this.octaves,
-      persistence: this.persistence,
-      lacunarity: this.lacunarity,
-      seed: this.seed,
-      smoothIterations: this.smoothIterations
-    });
-    console.log("Terrain heights", { minHeight, maxHeight });
   }
 
   random2D(ix, iz) {
