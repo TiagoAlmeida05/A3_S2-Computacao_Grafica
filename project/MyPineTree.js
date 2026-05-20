@@ -12,7 +12,8 @@ export class MyPineTree extends CGFobject {
   displayTrunk() {
     // Trunk
     this.scene.pushMatrix();
-    this.scene.scale(0.18, 1.0, 0.18);
+    this.scene.rotate(-Math.PI / 2, 1, 0, 0);
+    this.scene.scale(0.18, 0.18, 1.0);
     this.trunk.display();
     this.scene.popMatrix();
   }

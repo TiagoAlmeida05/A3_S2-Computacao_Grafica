@@ -11,22 +11,25 @@ export class MyDeadTree extends CGFobject {
   display() {
     // Main trunk
     this.scene.pushMatrix();
-    this.scene.scale(0.18, 1.2, 0.18);
+    this.scene.rotate(-Math.PI / 2, 1, 0, 0);
+    this.scene.scale(0.18, 0.18, 1.2);
     this.trunk.display();
     this.scene.popMatrix();
 
     // Sparse branches for a dead tree silhouette
     this.scene.pushMatrix();
     this.scene.translate(0, 0.85, 0);
+    this.scene.rotate(-Math.PI / 2, 1, 0, 0);
     this.scene.rotate(-0.6, 0, 0, 1);
-    this.scene.scale(0.08, 0.5, 0.08);
+    this.scene.scale(0.08, 0.08, 0.5);
     this.branch.display();
     this.scene.popMatrix();
 
     this.scene.pushMatrix();
     this.scene.translate(0, 0.95, 0);
+    this.scene.rotate(-Math.PI / 2, 1, 0, 0);
     this.scene.rotate(0.5, 0, 0, 1);
-    this.scene.scale(0.07, 0.45, 0.07);
+    this.scene.scale(0.07, 0.07, 0.45);
     this.branch.display();
     this.scene.popMatrix();
   }

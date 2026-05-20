@@ -41,13 +41,13 @@ export class MyScene extends CGFscene {
       this,
       200,
       100,
-      20.0,
+      4.0,
       8,
-      0,
-      0.08,
-      5,
-      0.6,
-      2.0,
+      3,
+      0.035,
+      4,
+      0.45,
+      1.85,
       1337
     );
     this.sky = new MySphere(this, 200, 100, 80, true, false, 1, 1); 
@@ -76,7 +76,7 @@ export class MyScene extends CGFscene {
     this.terrainShader.setUniformsValues({
       uSampler: 0,
       uSampler2: 1,
-      uMaxHeight: this.terrain.maxHeight,
+      uMaxHeight: this.terrain.getMaxHeight(),
       uBlendLow: 0.2,
       uBlendHigh: 0.7
     });
@@ -97,7 +97,7 @@ export class MyScene extends CGFscene {
     this.grassBladesMin = 260;
     this.grassBladesMax = 420;
     this.grassDeadPatchChance = 0.15;
-    this.grassFlatSlope = 5.0;
+    this.grassFlatSlope = 0.5;
     this.grassMaxDistance = 140;
     this.grassMaxTotalBlades = 40000;
     this.grassLodNear = 20;
@@ -110,7 +110,7 @@ export class MyScene extends CGFscene {
     this.floraCount = 8;
     this.floraMinScale = 0.7;
     this.floraMaxScale = 1.6;
-    this.floraFlatSlope = 1.2;
+    this.floraFlatSlope = 0.45;
 
     this.skyAppearance = new CGFappearance(this);
     this.skyAppearance.setAmbient(1.0, 1.0, 1.0, 1.0);
@@ -124,8 +124,8 @@ export class MyScene extends CGFscene {
     this.displayAxis = true;
     this.displayPlane = true;
 
-    this.initScatterElements();
     this.initWaterPonds();
+    this.initScatterElements();
     this.initGrassSystem();
     this.initFloraSystem();
   }
@@ -181,11 +181,11 @@ export class MyScene extends CGFscene {
     this.scatterBounds = halfSize * 0.9;
     this.centerClearRadius = 12;
 
-    this.rockInstances = this.generateScatter(10, 0.6, 1.4);
-    this.pineInstances = this.generateScatter(8, 1.4, 2.3);
-    this.leafyInstances = this.generateScatter(6, 1.2, 1.9);
-    this.deadInstances = this.generateScatter(3, 1.2, 1.8);
-    this.grassInstances = this.generateScatter(24, 0.4, 0.9);
+    this.rockInstances = this.generateScatter(10, 0.6, 1.4, 0.7);
+    this.pineInstances = this.generateScatter(8, 1.4, 2.3, 0.45);
+    this.leafyInstances = this.generateScatter(6, 1.2, 1.9, 0.45);
+    this.deadInstances = this.generateScatter(3, 1.2, 1.8, 0.45);
+    this.grassInstances = this.generateScatter(24, 0.4, 0.9, 0.5);
   }
 
   initWaterPonds() {
@@ -271,16 +271,12 @@ export class MyScene extends CGFscene {
     this.grassLiveAppearance.setDiffuse(0.45, 0.75, 0.4, 1.0);
     this.grassLiveAppearance.setSpecular(0.02, 0.02, 0.02, 1.0);
     this.grassLiveAppearance.setShininess(4.0);
-    this.grassLiveAppearance.setTexture(this.grassTexture);
-    this.grassLiveAppearance.setTextureWrap("REPEAT", "REPEAT");
 
     this.grassDeadAppearance = new CGFappearance(this);
     this.grassDeadAppearance.setAmbient(0.25, 0.2, 0.12, 1.0);
     this.grassDeadAppearance.setDiffuse(0.6, 0.5, 0.3, 1.0);
     this.grassDeadAppearance.setSpecular(0.01, 0.01, 0.01, 1.0);
     this.grassDeadAppearance.setShininess(3.0);
-    this.grassDeadAppearance.setTexture(this.dirtTexture);
-    this.grassDeadAppearance.setTextureWrap("REPEAT", "REPEAT");
 
     this.grassPatchInstances = this.generateGrassScatter();
     console.log("Grass patches generated:", this.grassPatchInstances.length);
@@ -337,11 +333,13 @@ export class MyScene extends CGFscene {
       const z = (random() * 2 - 1) * halfSize;
 
       if (Math.hypot(x, z) < this.centerClearRadius) continue;
-      if (this.isInsidePond(x, z)) continue;
       if (this.getTerrainSlope(x, z) > this.grassFlatSlope) continue;
 
-      const y = this.terrain.getHeightAt(x, z);
       const scale = this.grassPatchMinScale + (this.grassPatchMaxScale - this.grassPatchMinScale) * random();
+      const patchRadius = scale * 1.8;
+      if (this.isInsidePond(x, z, patchRadius + 0.6)) continue;
+
+      const y = this.getGroundY(x, z);
       const rotation = random() * Math.PI * 2;
       const isDead = random() < this.grassDeadPatchChance;
       const tint = isDead ? 0.55 + 0.2 * random() : 0.85 + 0.25 * random();
@@ -350,12 +348,28 @@ export class MyScene extends CGFscene {
       let bladeCount =
         this.grassBladesMin + Math.floor(random() * (this.grassBladesMax - this.grassBladesMin + 1));
       if (isDead) bladeCount = Math.max(2, Math.floor(bladeCount * 0.6));
-      for (let b = 0; b < bladeCount; b++) {
+      const maxBladeAttempts = bladeCount * 6;
+      let bladeAttempts = 0;
+      while (blades.length < bladeCount && bladeAttempts < maxBladeAttempts) {
+        bladeAttempts++;
         const angle = random() * Math.PI * 2;
         const radius = 0.6 + 1.2 * random();
+        const offsetX = Math.cos(angle) * radius;
+        const offsetZ = Math.sin(angle) * radius;
+
+        const cosR = Math.cos(rotation);
+        const sinR = Math.sin(rotation);
+        const worldX = x + (offsetX * scale) * cosR - (offsetZ * scale) * sinR;
+        const worldZ = z + (offsetX * scale) * sinR + (offsetZ * scale) * cosR;
+
+        if (this.isInsidePond(worldX, worldZ, 0.35 * scale)) continue;
+
         blades.push({
-          offsetX: Math.cos(angle) * radius,
-          offsetZ: Math.sin(angle) * radius,
+          offsetX,
+          offsetZ,
+          worldX,
+          worldZ,
+          worldY: this.getGroundY(worldX, worldZ),
           rotation: random() * Math.PI * 2,
           leanX: (random() - 0.5) * 0.35,
           leanZ: (random() - 0.5) * 0.35,
@@ -400,10 +414,10 @@ export class MyScene extends CGFscene {
 
       if (Math.abs(x) > halfSize || Math.abs(z) > halfSize) continue;
       if (Math.hypot(x, z) < this.centerClearRadius) continue;
-      if (this.isInsidePond(x, z)) continue;
+      if (this.isInsidePond(x, z, 0.8)) continue;
       if (this.getTerrainSlope(x, z) > this.floraFlatSlope) continue;
 
-      const y = this.terrain.getHeightAt(x, z);
+      const y = this.getGroundY(x, z);
       const petalCount = 4 + Math.floor(random() * 5);
       const petalLength = 0.14 + 0.2 * random();
       const petalWidth = 0.08 + 0.1 * random();
@@ -466,19 +480,21 @@ export class MyScene extends CGFscene {
     return Math.max(Math.abs(hx - h), Math.abs(hz - h));
   }
 
-  isInsidePond(x, z) {
+  isInsidePond(x, z, margin = 0) {
     if (!this.pondInstances) return false;
     for (const pond of this.pondInstances) {
       const dx = x - pond.x;
       const dz = z - pond.z;
-      const nx = dx / pond.scaleX;
-      const nz = dz / pond.scaleZ;
-      if (nx * nx + nz * nz < 1.1) return true;
+      const scaleX = pond.scaleX + margin;
+      const scaleZ = pond.scaleZ + margin;
+      const nx = dx / scaleX;
+      const nz = dz / scaleZ;
+      if (nx * nx + nz * nz < 1.0) return true;
     }
     return false;
   }
 
-  generateScatter(count, minScale, maxScale) {
+  generateScatter(count, minScale, maxScale, maxSlope = Infinity) {
     const items = [];
     const maxAttempts = count * 12;
 
@@ -487,10 +503,13 @@ export class MyScene extends CGFscene {
       const z = (this.random() * 2 - 1) * this.scatterBounds;
       const centerDist = Math.hypot(x, z);
       if (centerDist < this.centerClearRadius) continue;
+      if (this.getTerrainSlope(x, z) > maxSlope) continue;
 
       const scale = minScale + (maxScale - minScale) * this.random();
       const rotation = this.random() * Math.PI * 2;
       const tint = 0.85 + 0.3 * this.random();
+
+      if (this.isInsidePond(x, z, scale * 0.9)) continue;
 
       items.push({ x, z, scale, rotation, tint });
     }
@@ -503,6 +522,10 @@ export class MyScene extends CGFscene {
     const diffuse = appearance._baseDiffuse;
     appearance.setDiffuse(diffuse[0] * tint, diffuse[1] * tint, diffuse[2] * tint, diffuse[3]);
     appearance.apply();
+  }
+
+  getGroundY(x, z, offset = 0) {
+    return this.terrain.getHeightAt(x, z) + offset;
   }
 
   setDefaultAppearance() {
@@ -570,12 +593,12 @@ export class MyScene extends CGFscene {
       }
     }
 
+    this.displayPonds();
+
     this.displayScatter();
 
     this.displayGrass();
     this.displayFlora();
-
-    this.displayPonds();
   }
 
   displayGrass() {
@@ -598,21 +621,28 @@ export class MyScene extends CGFscene {
 
       const appearance = patch.isDead ? this.grassDeadAppearance : this.grassLiveAppearance;
 
-      this.pushMatrix();
-      this.translate(patch.x, patch.y + 0.02, patch.z);
-      this.rotate(patch.rotation, 0, 1, 0);
-      this.scale(patch.scale, patch.scale * this.grassPatchHeightScale, patch.scale);
-
       this.applyTintedAppearance(appearance, patch.tint);
       if (patch.blades && patch.blades.length > 0) {
         let bladeLimit = patch.blades.length;
         if (dist > this.grassLodMid) bladeLimit = Math.floor(bladeLimit * 0.25);
         else if (dist > this.grassLodNear) bladeLimit = Math.floor(bladeLimit * 0.55);
 
-        this.grassPatch.display(patch.blades, bladeLimit);
+        for (let i = 0; i < bladeLimit; i++) {
+          const blade = patch.blades[i];
+          this.pushMatrix();
+          this.translate(blade.worldX, blade.worldY, blade.worldZ);
+          this.rotate(patch.rotation + blade.rotation, 0, 1, 0);
+          this.rotate(blade.leanX || 0, 1, 0, 0);
+          this.rotate(blade.leanZ || 0, 0, 0, 1);
+          this.scale(
+            patch.scale * blade.scale * 0.7,
+            patch.scale * this.grassPatchHeightScale * blade.scale,
+            patch.scale * blade.scale * 0.7
+          );
+          this.grassBlade.display();
+          this.popMatrix();
+        }
       }
-
-      this.popMatrix();
     }
 
     this.gl.enable(this.gl.CULL_FACE);
@@ -657,7 +687,7 @@ export class MyScene extends CGFscene {
 
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-    this.gl.depthMask(true);
+    this.gl.depthMask(false);
 
     this.pondAppearance.apply();
     for (const pond of this.pondInstances) {
@@ -670,11 +700,12 @@ export class MyScene extends CGFscene {
     }
 
     this.gl.disable(this.gl.BLEND);
+    this.gl.depthMask(true);
   }
 
   displayScatter() {
     for (const rock of this.rockInstances) {
-      const y = this.terrain.getHeightAt(rock.x, rock.z);
+      const y = this.getGroundY(rock.x, rock.z, rock.scale * 0.7);
       this.pushMatrix();
       this.translate(rock.x, y, rock.z);
       this.rotate(rock.rotation, 0, 1, 0);
@@ -685,7 +716,7 @@ export class MyScene extends CGFscene {
     }
 
     for (const tree of this.pineInstances) {
-      const y = this.terrain.getHeightAt(tree.x, tree.z);
+      const y = this.getGroundY(tree.x, tree.z);
       this.pushMatrix();
       this.translate(tree.x, y, tree.z);
       this.rotate(tree.rotation, 0, 1, 0);
@@ -698,7 +729,7 @@ export class MyScene extends CGFscene {
     }
 
     for (const tree of this.leafyInstances) {
-      const y = this.terrain.getHeightAt(tree.x, tree.z);
+      const y = this.getGroundY(tree.x, tree.z);
       this.pushMatrix();
       this.translate(tree.x, y, tree.z);
       this.rotate(tree.rotation, 0, 1, 0);
@@ -711,7 +742,7 @@ export class MyScene extends CGFscene {
     }
 
     for (const tree of this.deadInstances) {
-      const y = this.terrain.getHeightAt(tree.x, tree.z);
+      const y = this.getGroundY(tree.x, tree.z);
       this.pushMatrix();
       this.translate(tree.x, y, tree.z);
       this.rotate(tree.rotation, 0, 1, 0);
@@ -722,7 +753,7 @@ export class MyScene extends CGFscene {
     }
 
     for (const clump of this.grassInstances) {
-      const y = this.terrain.getHeightAt(clump.x, clump.z) + 0.02;
+      const y = this.getGroundY(clump.x, clump.z);
       this.pushMatrix();
       this.translate(clump.x, y, clump.z);
       this.rotate(clump.rotation, 0, 1, 0);
