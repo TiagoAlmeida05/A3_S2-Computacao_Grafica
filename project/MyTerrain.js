@@ -17,7 +17,7 @@ export class MyTerrain extends CGFobject {
     super(scene);
     this.size = size;
     this.nDivs = nDivs;
-    this.maxHeight = maxHeight;
+    this.heightAmplitude = maxHeight;
     this.texRepeat = texRepeat;
     this.smoothIterations = smoothIterations;
     this.noiseScale = noiseScale;
@@ -27,8 +27,8 @@ export class MyTerrain extends CGFobject {
     this.seed = seed;
 
     this.generated = false;
-    this.minHeight = 0;
-    this.maxHeight = 0;
+    this.minGeneratedHeight = 0;
+    this.maxGeneratedHeight = 0;
 
     this.heights = new Array((this.nDivs + 1) * (this.nDivs + 1)).fill(0);
 
@@ -81,13 +81,28 @@ export class MyTerrain extends CGFobject {
     let minHeight = Infinity;
     let maxHeight = -Infinity;
 
+    const lowScale = this.noiseScale * 0.55;
+    const detailScale = this.noiseScale * 1.7;
+    const flattenInner = this.size * 0.12;
+    const flattenOuter = this.size * 0.32;
+
     for (let row = 0; row <= this.nDivs; row++) {
       const z = halfSize - row * step;
 
       for (let column = 0; column <= this.nDivs; column++) {
         const x = -halfSize + column * step;
-        const noiseValue = this.fbm(x * this.noiseScale, z * this.noiseScale);
-        const height = noiseValue * this.maxHeight;
+        const hills = this.fbm(x * lowScale, z * lowScale);
+        const detail = this.fbm(x * detailScale, z * detailScale);
+        const centeredHills = (hills - 0.5) * 2.0;
+        const centeredDetail = (detail - 0.5) * 2.0;
+
+        let height = centeredHills * this.heightAmplitude * 0.7;
+        height += centeredDetail * this.heightAmplitude * 0.25;
+
+        const dist = Math.hypot(x, z);
+        const flattenT = Math.max(0, Math.min(1, (dist - flattenInner) / (flattenOuter - flattenInner)));
+        const flatten = 0.7 + 0.3 * flattenT;
+        height *= flatten;
 
         this.setHeight(column, row, height);
         minHeight = Math.min(minHeight, height);
@@ -99,12 +114,19 @@ export class MyTerrain extends CGFobject {
       this.smoothHeights(this.smoothIterations);
     }
 
+    minHeight = Infinity;
+    maxHeight = -Infinity;
+    for (const height of this.heights) {
+      minHeight = Math.min(minHeight, height);
+      maxHeight = Math.max(maxHeight, height);
+    }
+
     this.updateVerticesFromHeights();
     this.recalculateNormals();
     this.initGLBuffers();
 
-    this.minHeight = minHeight;
-    this.maxHeight = maxHeight;
+    this.minGeneratedHeight = minHeight;
+    this.maxGeneratedHeight = maxHeight;
 
     console.log("Procedural terrain generated");
     console.log("Terrain buffers", {
@@ -114,7 +136,7 @@ export class MyTerrain extends CGFobject {
     console.log("Terrain params", {
       size: this.size,
       nDivs: this.nDivs,
-      maxHeight: this.maxHeight,
+      heightAmplitude: this.heightAmplitude,
       noiseScale: this.noiseScale,
       octaves: this.octaves,
       persistence: this.persistence,
@@ -125,7 +147,6 @@ export class MyTerrain extends CGFobject {
     console.log("Terrain heights", { minHeight, maxHeight });
   }
 
-  // Pseudo-random value per integer cell, deterministic by seed.
   random2D(ix, iz) {
     const x = ix + this.seed * 0.123;
     const z = iz + this.seed * 0.456;
@@ -133,7 +154,6 @@ export class MyTerrain extends CGFobject {
     return value - Math.floor(value);
   }
 
-  // Smooth interpolation using cubic Hermite (smoothstep-like).
   smoothNoise2D(x, z) {
     const x0 = Math.floor(x);
     const z0 = Math.floor(z);
@@ -156,7 +176,6 @@ export class MyTerrain extends CGFobject {
     return nx0 * (1 - v) + nx1 * v;
   }
 
-  // Fractal Brownian Motion for softer rolling hills.
   fbm(x, z) {
     let value = 0;
     let amplitude = 1.0;
@@ -278,7 +297,11 @@ export class MyTerrain extends CGFobject {
   }
 
   getMinHeight() {
-    return this.minHeight;
+    return this.minGeneratedHeight;
+  }
+
+  getMaxHeight() {
+    return this.maxGeneratedHeight;
   }
 
   getLowPoints(threshold, step = 4) {

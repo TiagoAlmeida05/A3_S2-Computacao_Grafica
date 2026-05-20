@@ -10,15 +10,14 @@ export class MyLeafyTree extends CGFobject {
   }
 
   displayTrunk() {
-    // Trunk
     this.scene.pushMatrix();
-    this.scene.scale(0.2, 1.1, 0.2);
+    this.scene.rotate(-Math.PI / 2, 1, 0, 0);
+    this.scene.scale(0.2, 0.2, 1.1);
     this.trunk.display();
     this.scene.popMatrix();
   }
 
   displayFoliage() {
-    // Two simple canopy spheres for a chunky low-poly crown
     this.scene.pushMatrix();
     this.scene.translate(0, 1.05, 0);
     this.scene.scale(0.8, 0.8, 0.8);

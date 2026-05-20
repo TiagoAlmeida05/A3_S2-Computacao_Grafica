@@ -8,7 +8,6 @@ export class MyGrassClump extends CGFobject {
   }
 
   display() {
-    // Clustered blades for a chunky low-poly tuft
     for (let i = 0; i < 4; i++) {
       const angle = (i * Math.PI * 2) / 4;
       this.scene.pushMatrix();
