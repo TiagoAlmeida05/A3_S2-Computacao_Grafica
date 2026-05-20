@@ -24,19 +24,31 @@ export class MyCylinder extends CGFobject {
         const y = Math.sin(ang);
         this.vertices.push(x, y, z);
         this.normals.push(x, y, 0);
+
+        this.vertices.push(x, y, z);
+        this.normals.push(-x, -y, 0);
       }
     }
 
     for (let j = 0; j < this.stacks; j++) {
       for (let i = 0; i < this.slices; i++) {
         const nextI = (i + 1) % this.slices;
-        const v0 = j * this.slices + i;
-        const v1 = j * this.slices + nextI;
-        const v2 = (j + 1) * this.slices + i;
-        const v3 = (j + 1) * this.slices + nextI;
 
-        this.indices.push(v0, v1, v2);
-        this.indices.push(v2, v1, v3);
+        const v0_out = (j * this.slices + i) * 2;
+        const v1_out = (j * this.slices + nextI) * 2;
+        const v2_out = ((j + 1) * this.slices + i) * 2;
+        const v3_out = ((j + 1) * this.slices + nextI) * 2;
+
+        this.indices.push(v0_out, v1_out, v2_out);
+        this.indices.push(v2_out, v1_out, v3_out);
+
+        const v0_in = v0_out + 1;
+        const v1_in = v1_out + 1;
+        const v2_in = v2_out + 1;
+        const v3_in = v3_out + 1;
+
+        this.indices.push(v0_in, v2_in, v1_in);
+        this.indices.push(v2_in, v3_in, v1_in);
       }
     }
 

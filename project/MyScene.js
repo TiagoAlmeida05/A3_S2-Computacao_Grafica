@@ -9,6 +9,7 @@ import { MyGrassClump } from "./MyGrassClump.js";
 import { MyWaterPond } from "./MyWaterPond.js";
 import { MyGrassBlade } from "./MyGrassBlade.js";
 import { MyFlora } from "./MyFlora.js";
+import { MyWagon } from './MyWagon.js';
 
 export class MyScene extends CGFscene {
   constructor() {
@@ -123,6 +124,8 @@ export class MyScene extends CGFscene {
     this.skyAppearance.setShininess(1.0);
     this.skyAppearance.loadTexture('images/skyline/sky_panorama.jpg');
     this.skyAppearance.setTextureWrap('REPEAT', 'CLAMP_TO_EDGE');
+
+    this.wagon = new MyWagon(this);
 
     this.displayPlane = true;
 
@@ -631,6 +634,18 @@ export class MyScene extends CGFscene {
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.depthMask(true);
     this.gl.enable(this.gl.CULL_FACE); 
+    this.popMatrix();
+    
+    this.pushMatrix();
+
+    const wagonX = 0;
+    const wagonZ = 20;
+
+    const wagonY = this.getGroundY(wagonX, wagonZ) - 2.0;
+    this.translate(wagonX, wagonY, wagonZ);
+    this.rotate(Math.PI / 6, 0, 1, 0);
+    this.wagon.display();
+    
     this.popMatrix();
 
     this.setDefaultAppearance();
