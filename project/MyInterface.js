@@ -10,7 +10,6 @@ export class MyInterface extends CGFinterface {
         
         this.gui = new dat.GUI();
 
-        this.gui.add(this.scene, 'displayAxis').name('Display Axis');
         this.gui.add(this.scene, 'displayPlane').name('Display Plane');
         this.gui.add(this.scene, 'enableWind').name('Wind');
 
