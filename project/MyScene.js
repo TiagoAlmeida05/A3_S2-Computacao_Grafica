@@ -41,12 +41,12 @@ export class MyScene extends CGFscene {
       this,
       200,
       100,
-      10.0,
+      20.0,
       8,
-      1,
-      0.035,
-      3,
-      0.5,
+      0,
+      0.08,
+      5,
+      0.6,
       2.0,
       1337
     );
@@ -91,15 +91,15 @@ export class MyScene extends CGFscene {
 
     this.enableGrass = true;
     this.enableFlora = true;
-    this.grassPatchCount = 30;
-    this.grassPatchMinScale = 1.6;
-    this.grassPatchMaxScale = 2.8;
+    this.grassPatchCount = 140;
+    this.grassPatchMinScale = 2.0;
+    this.grassPatchMaxScale = 3.6;
     this.grassBladesMin = 260;
     this.grassBladesMax = 420;
     this.grassDeadPatchChance = 0.15;
-    this.grassFlatSlope = 1.0;
-    this.grassMaxDistance = 90;
-    this.grassMaxTotalBlades = 20000;
+    this.grassFlatSlope = 5.0;
+    this.grassMaxDistance = 140;
+    this.grassMaxTotalBlades = 40000;
     this.grassLodNear = 20;
     this.grassLodMid = 35;
     this.grassPatchHeightScale = 0.75;
@@ -352,7 +352,7 @@ export class MyScene extends CGFscene {
       if (isDead) bladeCount = Math.max(2, Math.floor(bladeCount * 0.6));
       for (let b = 0; b < bladeCount; b++) {
         const angle = random() * Math.PI * 2;
-        const radius = 0.35 + 0.85 * random();
+        const radius = 0.6 + 1.2 * random();
         blades.push({
           offsetX: Math.cos(angle) * radius,
           offsetZ: Math.sin(angle) * radius,
