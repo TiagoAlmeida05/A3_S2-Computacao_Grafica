@@ -10,7 +10,6 @@ export class MyPineTree extends CGFobject {
   }
 
   displayTrunk() {
-    // Trunk
     this.scene.pushMatrix();
     this.scene.rotate(-Math.PI / 2, 1, 0, 0);
     this.scene.scale(0.18, 0.18, 1.0);
@@ -19,7 +18,6 @@ export class MyPineTree extends CGFobject {
   }
 
   displayFoliage() {
-    // Layered cones for low-poly pine silhouette
     this.scene.pushMatrix();
     this.scene.translate(0, 0.7, 0);
     this.scene.scale(0.75, 1.0, 0.75);

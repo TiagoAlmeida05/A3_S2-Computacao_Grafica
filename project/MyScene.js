@@ -7,14 +7,9 @@ import { MyLeafyTree } from "./MyLeafyTree.js";
 import { MyDeadTree } from "./MyDeadTree.js";
 import { MyGrassClump } from "./MyGrassClump.js";
 import { MyWaterPond } from "./MyWaterPond.js";
-import { MyGrassPatch } from "./MyGrassPatch.js";
 import { MyGrassBlade } from "./MyGrassBlade.js";
 import { MyFlora } from "./MyFlora.js";
 
-/**
- * MyScene
- * @constructor
- */
 export class MyScene extends CGFscene {
   constructor() {
     super();
@@ -35,7 +30,6 @@ export class MyScene extends CGFscene {
 
     this.scaleFactor = 1.0;
 
-    // Initialize scene objects
     this.axis = new CGFaxis(this);
     this.terrain = new MyTerrain(
       this,
@@ -51,7 +45,6 @@ export class MyScene extends CGFscene {
       1337
     );
     this.sky = new MySphere(this, 200, 100, 80, true, false, 1, 1); 
-    this.sunSphere = new MySphere(this, 12, 32, 32, false, false, 1, 1); 
     
     this.cloudRotation = 0;
     this.setUpdatePeriod(50);
@@ -82,8 +75,18 @@ export class MyScene extends CGFscene {
     });
     this.useTerrainShader = false;
 
+    this.grassWindShader = new CGFshader(
+      this.gl,
+      "shaders/grass.vert",
+      "shaders/grass.frag"
+    );
+    this.windTime = 0;
+    this.enableWind = true;
+    this.windDirection = [1.0, 0.25];
+    this.windStrength = 0.35;
+
     this.enablePonds = true;
-    this.pondCount = 3;
+    this.pondCount = 6;
     this.pondLowHeightThreshold = 0.6;
     this.pondMinRadius = 5.0;
     this.pondMaxRadius = 8.0;
@@ -209,34 +212,98 @@ export class MyScene extends CGFscene {
     this.pondAppearance.setShininess(80.0);
 
     const minHeight = this.terrain.getMinHeight();
-    const lowThreshold = minHeight + this.pondLowHeightThreshold;
+    let lowThreshold = minHeight + this.pondLowHeightThreshold;
     let lowPoints = this.terrain.getLowPoints(lowThreshold, 4);
     const maxRadius = this.pondMaxRadius;
     const bounds = this.terrain.size * 0.5 - maxRadius * 1.2;
 
-    if (lowPoints.length === 0) {
-      const fallback = this.terrain.getLowPoints(minHeight + this.pondLowHeightThreshold * 2, 6);
-      lowPoints = fallback.length ? fallback : this.terrain.getLowPoints(minHeight + 0.8, 8);
+    while (lowPoints.length < this.pondCount * 8 && lowThreshold < minHeight + 2.4) {
+      lowThreshold += 0.35;
+      lowPoints = this.terrain.getLowPoints(lowThreshold, 4);
     }
 
     this.pondInstances = [];
-    let attempts = 0;
-    while (this.pondInstances.length < this.pondCount && attempts < lowPoints.length * 2) {
-      const index = Math.floor(this.pondRandom() * lowPoints.length);
-      const point = lowPoints[index];
-      attempts++;
-      if (!point) continue;
-      if (Math.abs(point.x) > bounds || Math.abs(point.z) > bounds) continue;
-      if (Math.hypot(point.x, point.z) < this.centerClearRadius) continue;
+    const candidates = lowPoints
+      .filter((point) =>
+        Math.abs(point.x) <= bounds &&
+        Math.abs(point.z) <= bounds &&
+        Math.hypot(point.x, point.z) >= this.centerClearRadius
+      )
+      .map((point) => ({ point, sort: this.pondRandom() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ point }) => point);
+
+    for (const point of candidates) {
+      if (this.pondInstances.length >= this.pondCount) break;
 
       const radius = this.pondMinRadius + (this.pondMaxRadius - this.pondMinRadius) * this.pondRandom();
       const scaleX = radius * (0.85 + 0.3 * this.pondRandom());
       const scaleZ = radius * (0.85 + 0.3 * this.pondRandom());
+      const minDistance = Math.max(scaleX, scaleZ) + this.pondMaxRadius * 0.9;
+      const overlaps = this.pondInstances.some((pond) => {
+        const otherRadius = Math.max(pond.scaleX, pond.scaleZ);
+        return Math.hypot(point.x - pond.x, point.z - pond.z) < minDistance + otherRadius;
+      });
+      if (overlaps) continue;
+
       const rotation = this.pondRandom() * Math.PI * 2;
       const y = point.height + 0.05;
 
       this.pondInstances.push({ x: point.x, z: point.z, y, scaleX, scaleZ, rotation });
     }
+
+    if (this.pondInstances.length < this.pondCount) {
+      for (const point of candidates) {
+        if (this.pondInstances.length >= this.pondCount) break;
+        const radius = this.pondMinRadius + (this.pondMaxRadius - this.pondMinRadius) * this.pondRandom();
+        const scaleX = radius * (0.85 + 0.3 * this.pondRandom());
+        const scaleZ = radius * (0.85 + 0.3 * this.pondRandom());
+        const overlaps = this.pondInstances.some((pond) =>
+          Math.hypot(point.x - pond.x, point.z - pond.z) <
+          Math.max(scaleX, scaleZ) + Math.max(pond.scaleX, pond.scaleZ) + 1.5
+        );
+        if (overlaps) continue;
+
+        this.pondInstances.push({
+          x: point.x,
+          z: point.z,
+          y: point.height + 0.05,
+          scaleX,
+          scaleZ,
+          rotation: this.pondRandom() * Math.PI * 2
+        });
+      }
+    }
+
+    if (this.pondInstances.length < this.pondCount) {
+      const ringRadius = this.terrain.size * 0.32;
+      for (let i = 0; i < this.pondCount && this.pondInstances.length < this.pondCount; i++) {
+        const angle = (Math.PI * 2 * i) / this.pondCount + 0.35;
+        const x = Math.cos(angle) * ringRadius;
+        const z = Math.sin(angle) * ringRadius;
+        if (Math.hypot(x, z) < this.centerClearRadius) continue;
+
+        const radius = this.pondMinRadius + (this.pondMaxRadius - this.pondMinRadius) * this.pondRandom();
+        const scaleX = radius * (0.85 + 0.3 * this.pondRandom());
+        const scaleZ = radius * (0.85 + 0.3 * this.pondRandom());
+        const overlaps = this.pondInstances.some((pond) =>
+          Math.hypot(x - pond.x, z - pond.z) <
+          Math.max(scaleX, scaleZ) + Math.max(pond.scaleX, pond.scaleZ) + 2.0
+        );
+        if (overlaps) continue;
+
+        this.pondInstances.push({
+          x,
+          z,
+          y: this.getGroundY(x, z, 0.05),
+          scaleX,
+          scaleZ,
+          rotation: this.pondRandom() * Math.PI * 2
+        });
+      }
+    }
+
+    console.log("Water ponds generated:", this.pondInstances.length);
 
   
   }
@@ -264,8 +331,6 @@ export class MyScene extends CGFscene {
     }
 
     this.grassBlade = new MyGrassBlade(this);
-    this.grassPatch = new MyGrassPatch(this);
-
     this.grassLiveAppearance = new CGFappearance(this);
     this.grassLiveAppearance.setAmbient(0.2, 0.35, 0.2, 1.0);
     this.grassLiveAppearance.setDiffuse(0.45, 0.75, 0.4, 1.0);
@@ -547,7 +612,6 @@ export class MyScene extends CGFscene {
     this.loadIdentity();
     this.applyViewMatrix();
 
-    // Sky dome
     this.pushMatrix();
     const skyMatrix = this.getMatrix();
     skyMatrix[12] = 0; skyMatrix[13] = 0; skyMatrix[14] = 0;
@@ -579,7 +643,6 @@ export class MyScene extends CGFscene {
     ];
     this.multMatrix(sca);
 
-    // Draw Ground
     if (this.displayPlane) {
       if (this.useTerrainShader) {
         this.setActiveShader(this.terrainShader);
@@ -606,6 +669,17 @@ export class MyScene extends CGFscene {
 
     this.gl.disable(this.gl.CULL_FACE);
     this.gl.depthMask(true);
+    this.windTime =
+      typeof performance !== "undefined" ? performance.now() * 0.001 : this.windTime + 0.05;
+    this.setActiveShader(this.grassWindShader);
+    this.grassWindShader.setUniformsValues({
+      uTime: this.windTime,
+      uWindDirection: this.windDirection,
+      uWindStrength: this.windStrength,
+      uWindEnabled: this.enableWind ? 1.0 : 0.0,
+      uBladeHeight: 0.32,
+      uLightDir: [0.35, 1.0, 0.25]
+    });
 
     const camPos = this.camera?.position;
     const maxDist = this.grassMaxDistance;
@@ -620,8 +694,17 @@ export class MyScene extends CGFscene {
       }
 
       const appearance = patch.isDead ? this.grassDeadAppearance : this.grassLiveAppearance;
+      const baseColor = patch.isDead ? [0.6, 0.5, 0.3] : [0.45, 0.75, 0.4];
 
-      this.applyTintedAppearance(appearance, patch.tint);
+      appearance.apply();
+      this.grassWindShader.setUniformsValues({
+        uGrassColor: [
+          baseColor[0] * patch.tint,
+          baseColor[1] * patch.tint,
+          baseColor[2] * patch.tint
+        ]
+      });
+
       if (patch.blades && patch.blades.length > 0) {
         let bladeLimit = patch.blades.length;
         if (dist > this.grassLodMid) bladeLimit = Math.floor(bladeLimit * 0.25);
@@ -631,7 +714,6 @@ export class MyScene extends CGFscene {
           const blade = patch.blades[i];
           this.pushMatrix();
           this.translate(blade.worldX, blade.worldY, blade.worldZ);
-          this.rotate(patch.rotation + blade.rotation, 0, 1, 0);
           this.rotate(blade.leanX || 0, 1, 0, 0);
           this.rotate(blade.leanZ || 0, 0, 0, 1);
           this.scale(
@@ -645,6 +727,7 @@ export class MyScene extends CGFscene {
       }
     }
 
+    this.setActiveShader(this.defaultShader);
     this.gl.enable(this.gl.CULL_FACE);
   }
 
@@ -765,7 +848,8 @@ export class MyScene extends CGFscene {
   }
 
   update(currTime) {
-    this.cloudRotation += 0.0008; // Good speed for drifting sprites
+    this.windTime = currTime * 0.001;
+    this.cloudRotation += 0.0008;
     if (this.cloudRotation > 2 * Math.PI) this.cloudRotation -= 2 * Math.PI;
 
     if (this.camera && (this.cameraMove.forward || this.cameraMove.backward)) {

@@ -147,7 +147,6 @@ export class MyTerrain extends CGFobject {
     console.log("Terrain heights", { minHeight, maxHeight });
   }
 
-  // Pseudo-random value per integer cell, deterministic by seed.
   random2D(ix, iz) {
     const x = ix + this.seed * 0.123;
     const z = iz + this.seed * 0.456;
@@ -155,7 +154,6 @@ export class MyTerrain extends CGFobject {
     return value - Math.floor(value);
   }
 
-  // Smooth interpolation using cubic Hermite (smoothstep-like).
   smoothNoise2D(x, z) {
     const x0 = Math.floor(x);
     const z0 = Math.floor(z);
@@ -178,7 +176,6 @@ export class MyTerrain extends CGFobject {
     return nx0 * (1 - v) + nx1 * v;
   }
 
-  // Fractal Brownian Motion for softer rolling hills.
   fbm(x, z) {
     let value = 0;
     let amplitude = 1.0;
