@@ -1,6 +1,7 @@
 import { CGFscene, CGFcamera, CGFaxis, CGFappearance, CGFtexture, CGFshader } from "../lib/CGF.js";
 import { MyTerrain } from "./MyTerrain.js";
 import { MySphere } from "./MySphere.js";
+import { MyCloudLayer } from "./MyCloud.js";
 import { MyLowPolyRock } from "./MyLowPolyRock.js";
 import { MyPineTree } from "./MyPineTree.js";
 import { MyLeafyTree } from "./MyLeafyTree.js";
@@ -17,7 +18,9 @@ export class MyScene extends CGFscene {
   }
   init(application) {
     super.init(application);
-    
+
+    this.sunDirection = [-100, 150, 10];
+
     this.initCameras();
     this.initLights();
 
@@ -45,9 +48,18 @@ export class MyScene extends CGFscene {
       1.85,
       1337
     );
-    this.sky = new MySphere(this, 200, 100, 80, true, false, 1, 1); 
+    this.sky = new MySphere(this, 260, 48, 24, true, true, 1, 1);
+
+    this.enableClouds = true;
+    this.cloudSpeed = 0.9;
+    this.cloudOpacity = 0.72;
+    this.cloudCount = 30;
+    this.cloudTime = 0;
+    this.cloudDirection = null;
+    this.cloudSeed = 20240620;
+    this.cloudBounds = this.terrain.size * 0.9;
     
-    this.cloudRotation = 0;
+    this.skyTime = 0;
     this.setUpdatePeriod(50);
 
     this.terrainAppearance = new CGFappearance(this);
@@ -76,6 +88,18 @@ export class MyScene extends CGFscene {
     });
     this.useTerrainShader = false;
 
+    this.skyShader = new CGFshader(
+      this.gl,
+      "shaders/sky.vert?v=5",
+      "shaders/sky.frag?v=5"
+    );
+
+    this.cloudShader = new CGFshader(
+      this.gl,
+      "shaders/cloud.vert?v=2",
+      "shaders/cloud.frag?v=2"
+    );
+
     this.grassWindShader = new CGFshader(
       this.gl,
       "shaders/grass.vert",
@@ -85,6 +109,7 @@ export class MyScene extends CGFscene {
     this.enableWind = true;
     this.windDirection = [1.0, 0.25];
     this.windStrength = 0.35;
+    this.cloudDirection = [this.windDirection[0], this.windDirection[1]];
 
     this.enablePonds = true;
     this.pondCount = 6;
@@ -95,40 +120,30 @@ export class MyScene extends CGFscene {
 
     this.enableGrass = true;
     this.enableFlora = true;
-    this.grassPatchCount = 140;
+    this.grassPatchCount = 55;
     this.grassPatchMinScale = 2.0;
     this.grassPatchMaxScale = 3.6;
-    this.grassBladesMin = 260;
-    this.grassBladesMax = 420;
+    this.grassBladesMin = 45;
+    this.grassBladesMax = 85;
     this.grassDeadPatchChance = 0.15;
     this.grassFlatSlope = 0.5;
-    this.grassMaxDistance = 140;
-    this.grassMaxTotalBlades = 40000;
-    this.grassLodNear = 20;
-    this.grassLodMid = 35;
+    this.grassMaxDistance = 60;
+    this.grassMaxTotalBlades = 5000;
+    this.grassLodNear = 16;
+    this.grassLodMid = 28;
     this.grassPatchHeightScale = 0.75;
 
     this.cameraMove = { forward: false, backward: false };
     this.cameraSpeed = 0.25;
 
-    this.floraCount = 8;
+    this.floraCount = 35;
     this.floraMinScale = 0.7;
     this.floraMaxScale = 1.6;
     this.floraFlatSlope = 0.45;
 
-    this.skyAppearance = new CGFappearance(this);
-    this.skyAppearance.setAmbient(1.0, 1.0, 1.0, 1.0);
-    this.skyAppearance.setDiffuse(1.0, 1.0, 1.0, 1.0);
-    this.skyAppearance.setSpecular(0.0, 0.0, 0.0, 1.0);
-    this.skyAppearance.setEmission(1.0, 1.0, 1.0, 1.0);
-    this.skyAppearance.setShininess(1.0);
-    this.skyAppearance.loadTexture('images/skyline/sky_panorama.jpg');
-    this.skyAppearance.setTextureWrap('REPEAT', 'CLAMP_TO_EDGE');
-
-    this.wagon = new MyWagon(this);
-
     this.displayPlane = true;
 
+    this.initCloudSystem();
     this.initWaterPonds();
     this.initScatterElements();
     this.initGrassSystem();
@@ -136,7 +151,7 @@ export class MyScene extends CGFscene {
   }
 
   initLights() {
-    this.lights[0].setPosition(-100, 150, 10, 0); 
+    this.lights[0].setPosition(this.sunDirection[0], this.sunDirection[1], this.sunDirection[2], 0); 
     
     this.lights[0].setAmbient(0.2, 0.2, 0.2, 1.0);
     this.lights[0].setDiffuse(1.0, 0.95, 0.8, 1.0);
@@ -306,9 +321,6 @@ export class MyScene extends CGFscene {
       }
     }
 
-    console.log("Water ponds generated:", this.pondInstances.length);
-
-  
   }
 
 
@@ -330,7 +342,6 @@ export class MyScene extends CGFscene {
     const maxPatches = Math.max(10, Math.floor(this.grassMaxTotalBlades / avgBlades));
     if (this.grassPatchCount > maxPatches) {
       this.grassPatchCount = maxPatches;
-      console.log("Grass patch count reduced for budget:", this.grassPatchCount);
     }
 
     this.grassBlade = new MyGrassBlade(this);
@@ -347,16 +358,6 @@ export class MyScene extends CGFscene {
     this.grassDeadAppearance.setShininess(3.0);
 
     this.grassPatchInstances = this.generateGrassScatter();
-    console.log("Grass patches generated:", this.grassPatchInstances.length);
-
-    const bladesPerPatch = this.grassBladesMax;
-    const totalGrassTris = this.grassPatchInstances.length * bladesPerPatch * 3;
-    console.log("Vegetation init", {
-      grassPatches: this.grassPatchInstances.length,
-      bladesPerPatch,
-      grassTris: totalGrassTris,
-      floraCount: this.enableFlora ? this.floraCount : 0
-    });
   }
 
   initFloraSystem() {
@@ -388,6 +389,124 @@ export class MyScene extends CGFscene {
     ];
 
     this.floraInstances = this.generateFloraScatter();
+  }
+
+  initCloudSystem() {
+    this.cloudInstances = this.generateCloudInstances();
+    if (this.cloudLayer) {
+      this.cloudLayer.setInstances(this.cloudInstances);
+      return;
+    }
+
+    this.cloudLayer = new MyCloudLayer(this, this.cloudInstances, this.cloudShader);
+  }
+
+  generateCloudInstances() {
+    const clouds = [];
+    const random = this.createSeededRandom(this.cloudSeed);
+    const count = Math.max(8, Math.floor(this.cloudCount || 0));
+    const bounds = this.cloudBounds || this.terrain.size * 0.9;
+
+    for (let i = 0; i < count; i++) {
+      const x = (random() * 2 - 1) * bounds;
+      const z = (random() * 2 - 1) * bounds;
+      const y = 58 + 32 * random();
+      const width = 18 + 27 * random();
+      const height = 7 + 9 * random();
+      const depth = 3 + 7 * random();
+      const puffCount = 18 + Math.floor(random() * 18);
+      const puffs = [];
+
+      const addPuff = (offsetX, offsetY, offsetZ, scaleX, scaleY, opacity, depthBias = 0) => {
+        puffs.push({
+          offsetX,
+          offsetY,
+          offsetZ,
+          offsetD: depthBias + (random() - 0.5) * depth * 0.2,
+          scaleX,
+          scaleY,
+          opacity,
+          rotation: (random() - 0.5) * 0.6,
+          seed: random() * 1000.0
+        });
+      };
+
+      const baseCount = 6 + Math.floor(random() * 5);
+      for (let b = 0; b < baseCount; b++) {
+        const t = baseCount === 1 ? 0.5 : b / (baseCount - 1);
+        const xPos = (t - 0.5) * width * 0.9 + (random() - 0.5) * width * 0.06;
+        const yPos = (random() - 0.5) * height * 0.08 - height * 0.18;
+        const zPos = (random() - 0.5) * depth * 0.35;
+        const sx = 4.5 + 3.5 * random();
+        const sy = 2.0 + 1.6 * random();
+        addPuff(xPos, yPos, zPos, sx, sy, 0.55 + 0.2 * random());
+      }
+
+      const bodyCount = 5 + Math.floor(random() * 4);
+      for (let b = 0; b < bodyCount; b++) {
+        const t = bodyCount === 1 ? 0.5 : b / (bodyCount - 1);
+        const xPos = (t - 0.5) * width * 0.6 + (random() - 0.5) * width * 0.12;
+        const yPos = height * (0.1 + 0.25 * random());
+        const zPos = (random() - 0.5) * depth * 0.55;
+        const sx = 5.5 + 3.5 * random();
+        const sy = 3.6 + 3.0 * random();
+        addPuff(xPos, yPos, zPos, sx, sy, 0.68 + 0.2 * random());
+      }
+
+      const topCount = 3 + Math.floor(random() * 3);
+      for (let t = 0; t < topCount; t++) {
+        const xPos = (random() - 0.5) * width * 0.45;
+        const yPos = height * (0.4 + 0.35 * random());
+        const zPos = (random() - 0.5) * depth * 0.45;
+        const sx = 4.8 + 3.2 * random();
+        const sy = 4.2 + 3.0 * random();
+        addPuff(xPos, yPos, zPos, sx, sy, 0.75 + 0.2 * random());
+      }
+
+      const sideCount = 2 + Math.floor(random() * 3);
+      for (let s = 0; s < sideCount; s++) {
+        const side = random() < 0.5 ? -1 : 1;
+        const xPos = side * width * (0.48 + 0.08 * random());
+        const yPos = height * (0.1 + 0.4 * random());
+        const zPos = (random() - 0.5) * depth * 0.45;
+        const sx = 3.5 + 2.0 * random();
+        const sy = 2.6 + 1.6 * random();
+        addPuff(xPos, yPos, zPos, sx, sy, 0.55 + 0.2 * random());
+      }
+
+      const backCount = 2 + Math.floor(random() * 3);
+      for (let r = 0; r < backCount; r++) {
+        const xPos = (random() - 0.5) * width * 0.55;
+        const yPos = height * (0.05 + 0.25 * random());
+        const zPos = depth * (0.35 + 0.25 * random());
+        const sx = 4.0 + 2.6 * random();
+        const sy = 2.4 + 1.8 * random();
+        addPuff(xPos, yPos, zPos, sx, sy, 0.5 + 0.2 * random(), depth * 0.2);
+      }
+
+      while (puffs.length < puffCount) {
+        const xPos = (random() - 0.5) * width * 0.5;
+        const yPos = height * (0.05 + 0.55 * random());
+        const zPos = (random() - 0.5) * depth * 0.5;
+        const sx = 4.0 + 3.0 * random();
+        const sy = 2.6 + 2.6 * random();
+        addPuff(xPos, yPos, zPos, sx, sy, 0.6 + 0.2 * random());
+      }
+
+      clouds.push({
+        x,
+        y,
+        z,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        scaleZ: 1.0,
+        rotation: random() * Math.PI * 2,
+        speed: 0.65 + 0.6 * random(),
+        puffs
+      });
+    }
+
+    return clouds;
   }
 
   generateGrassScatter() {
@@ -622,14 +741,15 @@ export class MyScene extends CGFscene {
     this.gl.disable(this.gl.DEPTH_TEST);
     this.gl.depthMask(false);
     this.gl.disable(this.gl.CULL_FACE);
+    this.setActiveShader(this.skyShader);
+    this.skyShader.setUniformsValues({
+      uTime: this.skyTime,
+      uSunDirection: this.sunDirection
+    });
     
-    this.translate(0, -5, 0);
-    this.scale(1, -1, 1);
-    
-
-    this.skyAppearance.apply();
     this.sky.display();
-    
+    this.setActiveShader(this.defaultShader);
+
     this.gl.disable(this.gl.BLEND);
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.depthMask(true);
@@ -638,15 +758,7 @@ export class MyScene extends CGFscene {
     
     this.pushMatrix();
 
-    const wagonX = 0;
-    const wagonZ = 20;
-
-    const wagonY = this.getGroundY(wagonX, wagonZ) - 2.0;
-    this.translate(wagonX, wagonY, wagonZ);
-    this.rotate(Math.PI / 6, 0, 1, 0);
-    this.wagon.display();
-    
-    this.popMatrix();
+    this.displayClouds();
 
     this.setDefaultAppearance();
 
@@ -773,6 +885,37 @@ export class MyScene extends CGFscene {
     }
   }
 
+  displayClouds() {
+    if (!this.enableClouds || !this.cloudLayer || !this.cloudInstances) return;
+
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.depthMask(false);
+
+    const dir = this.cloudDirection || [1.0, 0.0];
+    const len = Math.hypot(dir[0], dir[1]) || 1.0;
+    const dirX = dir[0] / len;
+    const dirZ = dir[1] / len;
+    const movement = this.cloudTime * this.cloudSpeed * 6.0;
+
+    this.cloudLayer.display(
+      this.cloudTime,
+      this.camera,
+      this.sunDirection,
+      this.cloudOpacity,
+      dirX,
+      dirZ,
+      movement,
+      this.cloudBounds
+    );
+
+    this.gl.depthMask(true);
+    this.gl.enable(this.gl.CULL_FACE);
+    this.gl.disable(this.gl.BLEND);
+  }
+
   applyColorToAppearance(appearance, color, alpha) {
     appearance.setAmbient(color[0] * 0.5, color[1] * 0.5, color[2] * 0.5, alpha);
     appearance.setDiffuse(color[0], color[1], color[2], alpha);
@@ -864,8 +1007,8 @@ export class MyScene extends CGFscene {
 
   update(currTime) {
     this.windTime = currTime * 0.001;
-    this.cloudRotation += 0.0008;
-    if (this.cloudRotation > 2 * Math.PI) this.cloudRotation -= 2 * Math.PI;
+    this.skyTime = currTime * 0.001;
+    this.cloudTime = currTime * 0.001;
 
     if (this.camera && (this.cameraMove.forward || this.cameraMove.backward)) {
       const dir = vec3.create();
