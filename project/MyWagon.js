@@ -36,7 +36,12 @@ export class MyWagon extends CGFobject {
         this.canvasMaterial.setTexture(this.fabricTexture);
     }
 
-    displayWheel(){
+    displayWheel(rotation = 0) {
+        this.darkMaterial.apply();
+
+        this.scene.pushMatrix();
+        this.scene.rotate(rotation, 0, 0, 1);
+
         this.scene.pushMatrix();
         this.scene.translate(0, 0, -0.2);
         this.scene.scale(0.8, 0.8, 0.4);
@@ -58,14 +63,14 @@ export class MyWagon extends CGFobject {
             this.cylinder.display();
             this.scene.popMatrix();
         }
+
+        this.scene.popMatrix();
     }
 
-    display() {
+    display(wheelRotation = 0, steeringAngle = 0) {
         this.scene.pushMatrix();
-        this.scene.translate(0,2,0);
 
-        // === THE BED ===
-        this.scene.pushMatrix()
+        this.scene.pushMatrix();
         this.scene.translate(0, 1, 0);
         this.scene.scale(1.5, 0.2, 3.0);
         this.box.display();
@@ -146,19 +151,19 @@ export class MyWagon extends CGFobject {
         this.scene.rotate(Math.PI / 2, 0, 1, 0);
         this.scene.translate(0, 0, -2.0);
         this.scene.scale(0.1, 0.1, 4.0);
-        this.cylinder.display()
+        this.cylinder.display();
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(-1.85, 0, 0);
         this.scene.rotate(-Math.PI / 2, 0, 1, 0);
-        this.displayWheel();
+        this.displayWheel(wheelRotation);
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(1.85, 0, 0);
         this.scene.rotate(Math.PI / 2, 0, 1, 0);
-        this.displayWheel();
+        this.displayWheel(-wheelRotation);
         this.scene.popMatrix();
 
         this.scene.popMatrix();
@@ -172,19 +177,21 @@ export class MyWagon extends CGFobject {
         this.scene.rotate(Math.PI / 2, 0, 1, 0);
         this.scene.translate(0, 0, -2.0);
         this.scene.scale(0.1, 0.1, 4.0);
-        this.cylinder.display()
+        this.cylinder.display();
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(-1.85, 0, 0);
+        this.scene.rotate(steeringAngle, 0, 1, 0);
         this.scene.rotate(-Math.PI / 2, 0, 1, 0);
-        this.displayWheel();
+        this.displayWheel(wheelRotation);
         this.scene.popMatrix();
 
         this.scene.pushMatrix();
         this.scene.translate(1.85, 0, 0);
+        this.scene.rotate(steeringAngle, 0, 1, 0);
         this.scene.rotate(Math.PI / 2, 0, 1, 0);
-        this.displayWheel();
+        this.displayWheel(-wheelRotation);
         this.scene.popMatrix();
 
         this.scene.popMatrix();

@@ -40,10 +40,10 @@ export class MyScene extends CGFscene {
       this,
       200,
       100,
-      4.0,
+      7.0,
       8,
-      3,
-      0.035,
+      2,
+      0.045,
       4,
       0.45,
       1.85,
@@ -134,8 +134,29 @@ export class MyScene extends CGFscene {
     this.grassLodMid = 28;
     this.grassPatchHeightScale = 0.75;
 
-    this.cameraMove = { forward: false, backward: false };
-    this.cameraSpeed = 0.25;
+    this.wagonInput = { forward: false, backward: false, left: false, right: false };
+    this.wagonPosition = { x: 10, z: 10 };
+    this.wagonHeading = Math.PI;
+    this.wagonSpeed = 0;
+    this.wagonSteering = 0;
+    this.wagonWheelAngle = 0;
+    this.wagonMaxSpeed = 8.0;
+    this.wagonAcceleration = 14.0;
+    this.wagonBrakeRate = 18.0;
+    this.wagonTurnRate = 1.35;
+    this.wagonSteerRate = 3.4;
+    this.wagonSteerReturnRate = 1.8;
+    this.wagonMaxSteer = Math.PI / 5;
+    this.wagonWheelRadius = 0.8;
+    this.wagonGroundClearance = 0.1;
+    this.wagonTrackWidth = 3.7;
+    this.wagonWheelBase = 4.0;
+
+    this.firstPersonCamera = false;
+    this.driverEyeHeight = 2.25;
+    this.driverSeatOffset = 3.35;
+    this.driverLookAhead = 14.0;
+    this.lastUpdateTime = null;
 
     this.floraCount = 35;
     this.floraMinScale = 0.7;
@@ -164,7 +185,9 @@ export class MyScene extends CGFscene {
   }
 
   initCameras() {
-    this.camera = new CGFcamera(0.4, 0.1, 500, vec3.fromValues(0, 1.7, 25), vec3.fromValues(0, 1.0, 24));
+    this.thirdPersonCamera = new CGFcamera(0.4, 0.1, 500, vec3.fromValues(0, 1.7, 25), vec3.fromValues(0, 1.0, 24));
+    this.wagonCamera = new CGFcamera(0.75, 0.1, 500, vec3.fromValues(0, 2.5, 0), vec3.fromValues(0, 2.5, -1));
+    this.camera = this.thirdPersonCamera;
   }
 
   initScatterElements() {
@@ -778,6 +801,10 @@ export class MyScene extends CGFscene {
     ];
     this.multMatrix(sca);
 
+    if (!this.firstPersonCamera) {
+      this.displayWagon();
+    }
+
     if (this.displayPlane) {
       if (this.useTerrainShader) {
         this.setActiveShader(this.terrainShader);
@@ -797,6 +824,132 @@ export class MyScene extends CGFscene {
 
     this.displayGrass();
     this.displayFlora();
+
+    this.popMatrix();
+  }
+
+  getLocalPointOnWagon(localX, localZ) {
+    const cosR = Math.cos(this.wagonHeading);
+    const sinR = Math.sin(this.wagonHeading);
+    return {
+      x: this.wagonPosition.x + localX * cosR + localZ * sinR,
+      z: this.wagonPosition.z - localX * sinR + localZ * cosR
+    };
+  }
+
+  getWagonTerrainPose() {
+    const halfBase = this.wagonWheelBase * 0.5;
+    const halfTrack = this.wagonTrackWidth * 0.5;
+    const center = this.wagonPosition;
+    const front = this.getLocalPointOnWagon(0, halfBase);
+    const rear = this.getLocalPointOnWagon(0, -halfBase);
+    const left = this.getLocalPointOnWagon(-halfTrack, 0);
+    const right = this.getLocalPointOnWagon(halfTrack, 0);
+
+    const centerHeight = this.terrain.getHeightAt(center.x, center.z);
+    const frontHeight = this.terrain.getHeightAt(front.x, front.z);
+    const rearHeight = this.terrain.getHeightAt(rear.x, rear.z);
+    const leftHeight = this.terrain.getHeightAt(left.x, left.z);
+    const rightHeight = this.terrain.getHeightAt(right.x, right.z);
+    const averageHeight = (centerHeight * 2 + frontHeight + rearHeight + leftHeight + rightHeight) / 6;
+
+    return {
+      y: averageHeight + this.wagonGroundClearance,
+      pitch: Math.atan2(frontHeight - rearHeight, this.wagonWheelBase),
+      roll: Math.atan2(rightHeight - leftHeight, this.wagonTrackWidth)
+    };
+  }
+
+  displayWagon() {
+    if (!this.wagon) return;
+
+    const pose = this.getWagonTerrainPose();
+    this.pushMatrix();
+    this.translate(this.wagonPosition.x, pose.y, this.wagonPosition.z);
+    this.rotate(this.wagonHeading, 0, 1, 0);
+    this.rotate(-pose.pitch, 1, 0, 0);
+    this.rotate(pose.roll, 0, 0, 1);
+    this.wagon.display(this.wagonWheelAngle, this.wagonSteering);
+    this.popMatrix();
+  }
+
+  updateActiveCamera() {
+    this.camera = this.firstPersonCamera ? this.wagonCamera : this.thirdPersonCamera;
+    if (!this.firstPersonCamera || !this.wagonCamera) return;
+
+    const pose = this.getWagonTerrainPose();
+    const horizontalForwardX = Math.sin(this.wagonHeading);
+    const horizontalForwardZ = Math.cos(this.wagonHeading);
+    const pitchedForwardY = Math.sin(pose.pitch);
+    const pitchedForwardScale = Math.cos(pose.pitch);
+    const forwardX = horizontalForwardX * pitchedForwardScale;
+    const forwardZ = horizontalForwardZ * pitchedForwardScale;
+    const eye = vec3.fromValues(
+      this.wagonPosition.x + horizontalForwardX * this.driverSeatOffset,
+      pose.y + this.driverEyeHeight,
+      this.wagonPosition.z + horizontalForwardZ * this.driverSeatOffset
+    );
+    const target = vec3.fromValues(
+      eye[0] + forwardX * this.driverLookAhead,
+      eye[1] + pitchedForwardY * this.driverLookAhead,
+      eye[2] + forwardZ * this.driverLookAhead
+    );
+
+    this.wagonCamera.setPosition(eye);
+    this.wagonCamera.setTarget(target);
+  }
+
+  approach(current, target, maxStep) {
+    const delta = target - current;
+    if (Math.abs(delta) <= maxStep) return target;
+    return current + Math.sign(delta) * maxStep;
+  }
+
+  clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  updateWagon(currTime) {
+    if (this.lastUpdateTime === null) {
+      this.lastUpdateTime = currTime;
+      return;
+    }
+
+    const dt = Math.min((currTime - this.lastUpdateTime) * 0.001, 0.1);
+    this.lastUpdateTime = currTime;
+    if (dt <= 0) return;
+
+    const steerInput = (this.wagonInput.left ? 1 : 0) - (this.wagonInput.right ? 1 : 0);
+    const steerRate = steerInput === 0 ? this.wagonSteerReturnRate : this.wagonSteerRate;
+    this.wagonSteering = this.approach(
+      this.wagonSteering,
+      steerInput * this.wagonMaxSteer,
+      steerRate * dt
+    );
+
+    const moveInput = (this.wagonInput.forward ? 1 : 0) - (this.wagonInput.backward ? 1 : 0);
+    const speedRate = moveInput === 0 ? this.wagonBrakeRate : this.wagonAcceleration;
+    this.wagonSpeed = this.approach(
+      this.wagonSpeed,
+      moveInput * this.wagonMaxSpeed,
+      speedRate * dt
+    );
+
+    if (Math.abs(this.wagonSpeed) < 0.001) {
+      this.wagonSpeed = 0;
+      return;
+    }
+
+    const distance = this.wagonSpeed * dt;
+    const directionSign = this.wagonSpeed >= 0 ? 1 : -1;
+    this.wagonHeading += this.wagonSteering * this.wagonTurnRate * dt * directionSign;
+    this.wagonPosition.x += Math.sin(this.wagonHeading) * distance;
+    this.wagonPosition.z += Math.cos(this.wagonHeading) * distance;
+
+    const bounds = this.terrain.size * 0.5 - 4.0;
+    this.wagonPosition.x = this.clamp(this.wagonPosition.x, -bounds, bounds);
+    this.wagonPosition.z = this.clamp(this.wagonPosition.z, -bounds, bounds);
+    this.wagonWheelAngle -= distance / this.wagonWheelRadius;
   }
 
   displayGrass() {
@@ -1018,16 +1171,7 @@ export class MyScene extends CGFscene {
     this.skyTime = currTime * 0.001;
     this.cloudTime = currTime * 0.001;
 
-    if (this.camera && (this.cameraMove.forward || this.cameraMove.backward)) {
-      const dir = vec3.create();
-      vec3.subtract(dir, this.camera.target, this.camera.position);
-      dir[1] = 0;
-      vec3.normalize(dir, dir);
-      const step = this.cameraSpeed * (this.cameraMove.forward ? 1 : -1);
-
-      vec3.scaleAndAdd(this.camera.position, this.camera.position, dir, step);
-      vec3.scaleAndAdd(this.camera.target, this.camera.target, dir, step);
-      this.camera.updateProjectionMatrix();
-    }
+    this.updateWagon(currTime);
+    this.updateActiveCamera();
   }
 }
