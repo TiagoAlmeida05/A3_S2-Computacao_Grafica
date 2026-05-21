@@ -7,12 +7,10 @@ export class MyBarn extends CGFobject {
   constructor(scene) {
     super(scene);
     
-    // 1. Componentes estruturais tridimensionais
     this.barnBody = new MyBarnBody(scene);
     this.barnRoof = new MyBarnRoof(scene);
     this.rectQuad = new MyUnitQuad(scene);
     
-    // Componentes modulares externos isolados
     this.fenceComponent = new MyFence(scene);
     
     const depth = 5.0;
@@ -21,20 +19,16 @@ export class MyBarn extends CGFobject {
     this.hayFields = new MyHayFields(scene, diagonalZ);
     this.dropZoneContainer = new MyDropZone(scene, 0, depth / 2 + 3.8, 2.2, 32, 5);
 
-    // Caminho adaptativo de entrada de terra (Frente da porta)
     this.entrancePatch = new MyAdaptivePlane(scene, 0, (depth / 2 + 0.65), 2.2, 1.3, 8, 8);
 
-    // =========================================================================
-    // CORREÇÃO: Carregar a textura "dirt_diffuse.jpg" no material de terra!
-    // =========================================================================
+
     this.dirtMaterial = new CGFappearance(scene);
     this.dirtMaterial.setAmbient(0.42, 0.32, 0.22, 1.0);
     this.dirtMaterial.setDiffuse(0.55, 0.44, 0.33, 1.0);
     this.dirtMaterial.setSpecular(0.0, 0.0, 0.0, 1.0);
-    this.dirtMaterial.loadTexture("images/textures/dirt_diffuse.jpg"); // Ativa a imagem de terra
+    this.dirtMaterial.loadTexture("images/textures/dirt_diffuse.jpg"); 
     this.dirtMaterial.setTextureWrap("REPEAT", "REPEAT");
 
-    // Material do Telhado Escurecido com Textura
     this.whiteRoofMaterial = new CGFappearance(scene);
     this.whiteRoofMaterial.setAmbient(0.50, 0.50, 0.50, 1.0); 
     this.whiteRoofMaterial.setDiffuse(0.58, 0.58, 0.58, 1.0); 
@@ -45,14 +39,12 @@ export class MyBarn extends CGFobject {
   }
 
   display(materials, isWagonInDropZone) {
-    // Forçar visibilidade total de dupla face em todas as primitivas do celeiro
     this.scene.gl.disable(this.scene.gl.CULL_FACE);
 
     const width = 4.0; 
     const depth = 5.0;
     const barnBaseY = this.scene.getGroundY(0, 0);
 
-    // 1. Renderização de envolvente (Terra, Feno e Cercas)
     this.dirtMaterial.apply();
     this.entrancePatch.display();
     this.hayFields.display(barnBaseY);
@@ -61,22 +53,18 @@ export class MyBarn extends CGFobject {
     this.fenceComponent.displayLine(8.1, -1.3, 8.1, 6.2, barnBaseY);
     this.fenceComponent.displayLine(8.1, 6.2, 2.2, 6.2, barnBaseY);
 
-    // 2. CORPO PRINCIPAL DO CELEIRO VERMELHO (Com alicerce embutido)
     if (materials.barnRed) materials.barnRed.apply();
     this.scene.pushMatrix();
     this.barnBody.display();
     this.scene.popMatrix();
 
-    // 3. TELHADO: Com a textura ativa e tonalidade escurecida
     this.whiteRoofMaterial.apply();
     this.scene.pushMatrix();
     this.barnRoof.display();
     this.scene.popMatrix();
 
-    // 4. ADORNOS E JANELAS DA FACHADA FRONTAL (Começam em Y=0 para alinhar com o chão)
     const frontZ = depth / 2 + 0.01;
 
-    // Moldura Branca das Portas
     if (materials.trimWhite) materials.trimWhite.apply();
     this.scene.pushMatrix();
     this.scene.translate(0, 0.65, frontZ);
@@ -84,7 +72,6 @@ export class MyBarn extends CGFobject {
     this.rectQuad.display();
     this.scene.popMatrix();
 
-    // Porta Esquerda com Cruzeta em "X"
     if (materials.barnRed) materials.barnRed.apply();
     this.scene.pushMatrix();
     this.scene.translate(-0.42, 0.65, frontZ + 0.01);
@@ -106,7 +93,6 @@ export class MyBarn extends CGFobject {
     this.rectQuad.display();
     this.scene.popMatrix();
 
-    // Porta Direito com Cruzeta em "X"
     if (materials.barnRed) materials.barnRed.apply();
     this.scene.pushMatrix();
     this.scene.translate(0.42, 0.65, frontZ + 0.01);
@@ -128,7 +114,6 @@ export class MyBarn extends CGFobject {
     this.rectQuad.display();
     this.scene.popMatrix();
 
-    // Janela do Sótão Superior
     this.scene.pushMatrix();
     this.scene.translate(0, 2.7, frontZ); 
     this.scene.scale(0.7, 0.7, 1.0);
@@ -154,7 +139,6 @@ export class MyBarn extends CGFobject {
     this.rectQuad.display();
     this.scene.popMatrix();
 
-    // Duas Janelas Frontais Inferiores
     const frontWinLocations = [-1.3, 1.3];
     for (const winX of frontWinLocations) {
       if (materials.trimWhite) materials.trimWhite.apply();
@@ -184,7 +168,6 @@ export class MyBarn extends CGFobject {
       this.scene.popMatrix();
     }
 
-    // Janelas Laterais Harmonizadas
     const windowSpacing = 1.1;
     const wallXOffset = width / 2;
 
@@ -250,7 +233,6 @@ export class MyBarn extends CGFobject {
       this.scene.popMatrix();
     }
 
-    // CORREÇÃO: Chamada limpa e única para o componente autónomo da DropZone
     this.dropZoneContainer.display();
 
     this.scene.gl.enable(this.scene.gl.CULL_FACE);

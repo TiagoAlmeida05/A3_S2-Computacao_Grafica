@@ -199,11 +199,11 @@ export class MyScene extends CGFscene {
 
   initCameras() {
     this.camera = new CGFcamera(
-      0.6,                        // Slightly wider field of view
-      0.1,                        // Near clipping plane
-      500,                        // Far clipping plane
-      vec3.fromValues(0, 8, 20),  // Position: Moved up (Y=8) and back (Z=20)
-      vec3.fromValues(0, 1.5, 0)  // Target: Focused directly on the barn's core!
+      0.6,                        
+      0.1,                        
+      500,                        
+      vec3.fromValues(0, 8, 20),  
+      vec3.fromValues(0, 1.5, 0)  
     );  
   }
 
