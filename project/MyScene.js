@@ -30,6 +30,7 @@ export class MyScene extends CGFscene {
     this.gl.clearDepth(100.0);
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.enable(this.gl.CULL_FACE);
+    this.gl.enable(this.gl.NORMALIZE);
     this.gl.depthFunc(this.gl.LEQUAL);
 
     this.scaleFactor = 1.0;
@@ -48,7 +49,7 @@ export class MyScene extends CGFscene {
       1.85,
       1337
     );
-    this.sky = new MySphere(this, 260, 48, 24, true, true, 1, 1);
+    this.sky = new MySphere(this, 260, 48, 24, true, false, 1, 1);
 
     this.enableClouds = true;
     this.cloudSpeed = 0.9;
@@ -140,6 +141,8 @@ export class MyScene extends CGFscene {
     this.floraMinScale = 0.7;
     this.floraMaxScale = 1.6;
     this.floraFlatSlope = 0.45;
+
+    this.wagon = new MyWagon(this);
 
     this.displayPlane = true;
 
@@ -759,6 +762,11 @@ export class MyScene extends CGFscene {
     this.pushMatrix();
 
     this.displayClouds();
+
+    this.pushMatrix();
+    this.translate(10, 0, 10);
+    this.wagon.display();
+    this.popMatrix();
 
     this.setDefaultAppearance();
 

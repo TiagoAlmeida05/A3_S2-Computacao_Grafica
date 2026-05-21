@@ -86,21 +86,6 @@ export class MyWagon extends CGFobject {
         this.box.display();
         this.scene.popMatrix();
 
-        // Front Wall
-        this.scene.pushMatrix();
-        this.scene.translate(0, 1.5, 2.95);
-        this.scene.scale(1.4, 0.3, 0.05);
-        this.box.display();
-        this.scene.popMatrix();
-
-        // Back Wall
-        this.scene.pushMatrix();
-        this.scene.translate(0, 1.5, -2.95);
-        this.scene.scale(1.4, 0.3, 0.05);
-        this.box.display();
-        this.scene.popMatrix();
-
-
         // === PULLING TONGUE (FRONT BEAM) ===
         this.scene.pushMatrix();
         this.scene.translate(0, 1, 4.0);
@@ -115,7 +100,43 @@ export class MyWagon extends CGFobject {
         this.box.display();
         this.scene.popMatrix();
 
-        this.darkMaterial.apply();
+        // === DRIVER SEAT ===
+        // Left support
+        this.scene.pushMatrix();
+        this.scene.translate(-0.5, 1.15, 3.2);
+        this.scene.scale(0.08, 0.32, 0.08);
+        this.box.display();
+        this.scene.popMatrix();
+
+        // Right support
+        this.scene.pushMatrix();
+        this.scene.translate(0.5, 1.15, 3.2);
+        this.scene.scale(0.08, 0.32, 0.08);
+        this.box.display();
+        this.scene.popMatrix();
+
+        // Seat plank
+        this.scene.pushMatrix();
+        this.scene.translate(0, 1.38, 3.2);
+        this.scene.scale(1.2, 0.1, 0.5);
+        this.box.display();
+        this.scene.popMatrix();
+
+        // Backrest
+        this.scene.pushMatrix();
+        this.scene.translate(0, 1.72, 2.98);
+        this.scene.rotate(-0.25, 1, 0, 0);
+        this.scene.scale(1.2, 0.45, 0.08);
+        this.box.display();
+        this.scene.popMatrix();
+
+        // Inclined foot board
+        this.scene.pushMatrix();
+        this.scene.translate(0, 1.02, 3.95);
+        this.scene.rotate(-0.45, 1, 0, 0);
+        this.scene.scale(0.9, 0.05, 0.35);
+        this.box.display();
+        this.scene.popMatrix();
 
         // === REAR AXLE & WHEELS ===
         this.scene.pushMatrix()
