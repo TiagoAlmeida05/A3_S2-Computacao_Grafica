@@ -10,6 +10,7 @@ import { MyGrassClump } from "./MyGrassClump.js";
 import { MyWaterPond } from "./MyWaterPond.js";
 import { MyGrassBlade } from "./MyGrassBlade.js";
 import { MyFlora } from "./MyFlora.js";
+import { MyBarn } from "./MyBarn.js";
 
 export class MyScene extends CGFscene {
   constructor() {
@@ -17,6 +18,7 @@ export class MyScene extends CGFscene {
   }
   init(application) {
     super.init(application);
+    
 
     this.sunDirection = [-100, 150, 10];
 
@@ -49,6 +51,9 @@ export class MyScene extends CGFscene {
     );
     this.sky = new MySphere(this, 260, 48, 24, true, true, 1, 1);
 
+    this.barn = new MyBarn(this);
+    this.isWagonInDropZone = false;
+
     this.enableClouds = true;
     this.cloudSpeed = 0.9;
     this.cloudOpacity = 0.72;
@@ -73,6 +78,39 @@ export class MyScene extends CGFscene {
     this.terrainAppearance.setTexture(this.grassTexture);
     this.terrainAppearance.setTextureWrap("REPEAT", "REPEAT");
 
+    this.barnMaterials = {
+      barnRed: new CGFappearance(this),
+      trimWhite: new CGFappearance(this),
+      roofDark: new CGFappearance(this),
+      windowBlue: new CGFappearance(this),
+      zoneNormal: new CGFappearance(this),
+      zoneActive: new CGFappearance(this)
+    };
+
+    this.barnMaterials.barnRed.setAmbient(0.6, 0.12, 0.12, 1.0);
+    this.barnMaterials.barnRed.setDiffuse(0.75, 0.15, 0.15, 1.0);
+    this.barnMaterials.barnRed.loadTexture("images/textures/barn_diffuse.jpg");
+    this.barnMaterials.barnRed.setTextureWrap("REPEAT", "REPEAT");
+
+    this.barnMaterials.trimWhite.setAmbient(0.8, 0.8, 0.8, 1.0);
+    this.barnMaterials.trimWhite.setDiffuse(0.95, 0.95, 0.95, 1.0);
+
+    this.barnMaterials.roofDark.setAmbient(0.18, 0.18, 0.2, 1.0);
+    this.barnMaterials.roofDark.setDiffuse(0.25, 0.25, 0.28, 1.0);
+    this.barnMaterials.roofDark.loadTexture("images/textures/roof_diffuse.jpg");
+    this.barnMaterials.roofDark.setTextureWrap("REPEAT", "REPEAT");
+
+    this.barnMaterials.windowBlue.setAmbient(0.3, 0.6, 0.8, 1.0);
+    this.barnMaterials.windowBlue.setDiffuse(0.4, 0.75, 0.95, 1.0);
+    this.barnMaterials.windowBlue.loadTexture("images/textures/window_diffuse.svg");
+    this.barnMaterials.windowBlue.setTextureWrap("CLAMP_TO_EDGE", "CLAMP_TO_EDGE");
+
+    this.barnMaterials.zoneNormal.setAmbient(0.1, 0.5, 0.1, 0.4);
+    this.barnMaterials.zoneNormal.setDiffuse(0.2, 0.7, 0.2, 0.5);
+
+    this.barnMaterials.zoneActive.setAmbient(0.6, 0.4, 0.1, 0.6);
+    this.barnMaterials.zoneActive.setDiffuse(0.9, 0.6, 0.1, 0.7);
+
     this.terrainShader = new CGFshader(
       this.gl,
       "shaders/terrain.vert",
@@ -89,14 +127,14 @@ export class MyScene extends CGFscene {
 
     this.skyShader = new CGFshader(
       this.gl,
-      "shaders/sky.vert?v=5",
-      "shaders/sky.frag?v=5"
+      "shaders/sky.vert",
+      "shaders/sky.frag"
     );
 
     this.cloudShader = new CGFshader(
       this.gl,
-      "shaders/cloud.vert?v=2",
-      "shaders/cloud.frag?v=2"
+      "shaders/cloud.vert",
+      "shaders/cloud.frag"
     );
 
     this.grassWindShader = new CGFshader(
@@ -160,7 +198,13 @@ export class MyScene extends CGFscene {
   }
 
   initCameras() {
-    this.camera = new CGFcamera(0.4, 0.1, 500, vec3.fromValues(0, 1.7, 25), vec3.fromValues(0, 1.0, 24));
+    this.camera = new CGFcamera(
+      0.6,                        // Slightly wider field of view
+      0.1,                        // Near clipping plane
+      500,                        // Far clipping plane
+      vec3.fromValues(0, 8, 20),  // Position: Moved up (Y=8) and back (Z=20)
+      vec3.fromValues(0, 1.5, 0)  // Target: Focused directly on the barn's core!
+    );  
   }
 
   initScatterElements() {
@@ -319,9 +363,7 @@ export class MyScene extends CGFscene {
         });
       }
     }
-
   }
-
 
   createSeededRandom(seed) {
     let state = seed >>> 0;
@@ -783,6 +825,11 @@ export class MyScene extends CGFscene {
     this.displayPonds();
 
     this.displayScatter();
+
+    this.pushMatrix();
+    this.translate(0, this.getGroundY(0, 0), -4.0);
+    this.barn.display(this.barnMaterials, this.isWagonInDropZone);
+    this.popMatrix();
 
     this.displayGrass();
     this.displayFlora();
