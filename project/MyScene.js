@@ -786,11 +786,6 @@ export class MyScene extends CGFscene {
 
     this.displayClouds();
 
-    this.pushMatrix();
-    this.translate(10, 0, 10);
-    this.wagon.display();
-    this.popMatrix();
-
     this.setDefaultAppearance();
 
     var sca = [
