@@ -44,16 +44,24 @@ export class MyInterface extends CGFinterface {
 
         const keyMap = {
             KeyW: "forward",
-            KeyS: "backward",
             KeyA: "left",
             KeyD: "right"
         };
         const action = keyMap[event.code];
-        if (!action) return false;
 
-        this.captureEvent(event);
-        this.scene.wagonInput[action] = pressed;
-        return true;
+        if (action) {
+            this.captureEvent(event);
+            this.scene.wagonInput[action] = pressed;
+            return true;
+        }
+
+        if (event.code === "KeyS"){
+            this.captureEvent(event);
+            this.scene.wagonInput.braking = pressed;
+            return true;
+        }
+        
+        return false;
     }
 
     captureEvent(event) {

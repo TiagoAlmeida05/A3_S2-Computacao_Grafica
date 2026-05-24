@@ -2,6 +2,7 @@ import { CGFobject, CGFtexture, CGFappearance } from '../lib/CGF.js'
 import { MyUnitCubeQuad } from './MyUnitCubeQuad.js';
 import { MyCylinder } from './MyCylinder.js';
 import { MyHalfCylinder } from './MyHalfCylinder.js';
+import { MyHorse } from './MyHorse.js';
 
 export class MyWagon extends CGFobject {
     constructor(scene){
@@ -21,6 +22,9 @@ export class MyWagon extends CGFobject {
 
         this.cylinder = new MyCylinder(this.scene, 16, 1);
         this.roof = new MyHalfCylinder(this.scene, 16, 1);
+
+        this.horseLeft = new MyHorse(this.scene);
+        this.horseRight = new MyHorse(this.scene);
 
         this.darkMaterial = new CGFappearance(this.scene);
         this.darkMaterial.setAmbient(0.1, 0.1, 0.1, 1.0);
@@ -93,23 +97,15 @@ export class MyWagon extends CGFobject {
 
         // === PULLING TONGUE (FRONT BEAM) ===
         this.scene.pushMatrix();
-        this.scene.translate(0, 1, 4.0);
-        this.scene.scale(0.15, 0.15, 2.0);
+        this.scene.translate(0, 1, 4.5);
+        this.scene.scale(0.15, 0.15, 3.0);
         this.box.display();
         this.scene.popMatrix();
 
         // Crossbar (Doubletree)
         this.scene.pushMatrix();
-        this.scene.translate(0, 1.15, 5.5);
+        this.scene.translate(0, 1.15, 7.5);
         this.scene.scale(1.0, 0.1, 0.1);
-        this.box.display();
-        this.scene.popMatrix();
-
-        // === DRIVER SEAT ===
-        // Left support
-        this.scene.pushMatrix();
-        this.scene.translate(-0.5, 1.15, 3.2);
-        this.scene.scale(0.08, 0.32, 0.08);
         this.box.display();
         this.scene.popMatrix();
 
@@ -204,6 +200,22 @@ export class MyWagon extends CGFobject {
         this.roof.display();
         this.scene.popMatrix();
 
+        // === HORSES ===
+        this.scene.pushMatrix();
+        this.scene.translate(-0.8, 0, 6);
+        this.horseLeft.display();
         this.scene.popMatrix();
+
+        this.scene.pushMatrix();
+        this.scene.translate(0.8, 0, 6);
+        this.horseRight.display();
+        this.scene.popMatrix();
+
+        this.scene.popMatrix();
+    }
+
+    update(speed, dt) {
+        this.horseLeft.update(speed, dt);
+        this.horseRight.update(speed, dt);
     }
 }

@@ -19,26 +19,36 @@ export class MyCylinder extends CGFobject {
 
     for (let j = 0; j <= this.stacks; j++) {
       const z = j * stackSize;
-      for (let i = 0; i < this.slices; i++) {
+      const v = j / this.stacks;
+
+      for (let i = 0; i <= this.slices; i++) {
         const ang = i * alpha;
         const x = Math.cos(ang);
         const y = Math.sin(ang);
+        const u = i / this.slices; 
+
+        // OUTSIDE Vertex
         this.vertices.push(x, y, z);
         this.normals.push(x, y, 0);
+        this.texCoords.push(u, v); 
 
+        // INSIDE Vertex
         this.vertices.push(x, y, z);
         this.normals.push(-x, -y, 0);
+        this.texCoords.push(u, v);
       }
     }
 
+    const vertsPerStack = (this.slices + 1) * 2;
+
     for (let j = 0; j < this.stacks; j++) {
       for (let i = 0; i < this.slices; i++) {
-        const nextI = (i + 1) % this.slices;
+        const nextI = i + 1;
 
-        const v0_out = (j * this.slices + i) * 2;
-        const v1_out = (j * this.slices + nextI) * 2;
-        const v2_out = ((j + 1) * this.slices + i) * 2;
-        const v3_out = ((j + 1) * this.slices + nextI) * 2;
+        const v0_out = j * vertsPerStack + (i * 2);
+        const v1_out = j * vertsPerStack + (nextI * 2);
+        const v2_out = (j + 1) * vertsPerStack + (i * 2);
+        const v3_out = (j + 1) * vertsPerStack + (nextI * 2);
 
         this.indices.push(v0_out, v1_out, v2_out);
         this.indices.push(v2_out, v1_out, v3_out);
