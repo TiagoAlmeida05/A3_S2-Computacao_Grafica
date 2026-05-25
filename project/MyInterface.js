@@ -12,7 +12,13 @@ export class MyInterface extends CGFinterface {
 
         this.gui.add(this.scene, "displayPlane").name("Display Plane");
         this.gui.add(this.scene, "enableWind").name("Wind");
+        this.firstPersonController = this.gui.add(this.scene, "firstPersonCamera")
+            .name("First Person Camera")
+            .onChange(() => document.activeElement?.blur());
         this.gui.add(this.scene, "scaleFactor", 0.1, 5).name("Scale Factor");
+
+        window.addEventListener("keydown", (event) => this.handleKey(event, true), true);
+        window.addEventListener("keyup", (event) => this.handleKey(event, false), true);
 
         const cloudFolder = this.gui.addFolder("Clouds");
         cloudFolder.add(this.scene, "enableClouds").name("Enable Clouds");
@@ -25,15 +31,49 @@ export class MyInterface extends CGFinterface {
         return true;
     }
 
+    handleKey(event, pressed) {
+        if (!this.scene?.wagonInput) return false;
+
+        if (pressed && event.code === "KeyC") {
+            this.captureEvent(event);
+            this.scene.firstPersonCamera = !this.scene.firstPersonCamera;
+            this.firstPersonController?.updateDisplay();
+            document.activeElement?.blur();
+            return true;
+        }
+
+        const keyMap = {
+            KeyW: "forward",
+            KeyA: "left",
+            KeyD: "right"
+        };
+        const action = keyMap[event.code];
+
+        if (action) {
+            this.captureEvent(event);
+            this.scene.wagonInput[action] = pressed;
+            return true;
+        }
+
+        if (event.code === "KeyS"){
+            this.captureEvent(event);
+            this.scene.wagonInput.braking = pressed;
+            return true;
+        }
+        
+        return false;
+    }
+
+    captureEvent(event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+
     processKeyDown(event) {
-        if (!this.scene?.cameraMove) return;
-        if (event.code === "KeyW") this.scene.cameraMove.forward = true;
-        if (event.code === "KeyS") this.scene.cameraMove.backward = true;
+        this.handleKey(event, true);
     }
 
     processKeyUp(event) {
-        if (!this.scene?.cameraMove) return;
-        if (event.code === "KeyW") this.scene.cameraMove.forward = false;
-        if (event.code === "KeyS") this.scene.cameraMove.backward = false;
+        this.handleKey(event, false);
     }
 }
