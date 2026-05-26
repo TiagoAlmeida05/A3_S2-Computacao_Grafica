@@ -33,6 +33,13 @@ export class MyWagon extends CGFobject {
     this.leatherMaterial = this.makeMaterial(0.05, 0.028, 0.012, 0.14, 0.08, 0.035, 0.12, 14);
     this.lampMaterial = this.makeMaterial(0.9, 0.58, 0.18, 1.0, 0.75, 0.25, 0.35, 30);
 
+    this.wagonWoodMaterial = new CGFappearance(this.scene);
+    this.wagonWoodMaterial.setAmbient(0.1, 0.1, 0.1, 1);
+    this.wagonWoodMaterial.setDiffuse(0.9, 0.9, 0.9, 1);
+    this.wagonWoodMaterial.setSpecular(0.1, 0.1, 0.1, 1);
+    this.wagonWoodMaterial.setShininess(10.0);
+    this.wagonWoodMaterial.setTexture(this.woodTexture);
+
     this.canvasMaterial = new CGFappearance(this.scene);
     this.canvasMaterial.setAmbient(0.62, 0.58, 0.48, 1.0);
     this.canvasMaterial.setDiffuse(0.86, 0.82, 0.68, 1.0);
@@ -87,31 +94,44 @@ export class MyWagon extends CGFobject {
     this.scene.pushMatrix();
     this.scene.rotate(rotation, 0, 0, 1);
 
-    this.drawCylinder(this.darkMaterial, 0, 0, -0.2, 0.86, 0.28);
-    this.drawCylinder(this.metalMaterial, 0, 0, -0.24, 0.72, 0.08);
-    this.drawCylinder(this.darkMaterial, 0, 0, -0.34, 0.54, 0.08);
-    this.drawCylinder(this.metalMaterial, 0, 0, -0.39, 0.2, 0.5);
+    this.drawCylinder(this.wagonWoodMaterial, 0, 0, -0.22, 0.86, 0.22);
 
-    for (let i = 0; i < 10; i++) {
-      this.scene.pushMatrix();
-      this.scene.rotate((Math.PI * 2 * i) / 10, 0, 0, 1);
-      this.drawCylinder(this.metalMaterial, 0, 0, -0.5, 0.025, 0.72, -Math.PI / 2, 0, 0);
-      this.scene.popMatrix();
+    this.drawCylinder(this.wagonWoodMaterial, 0, 0, -0.34, 0.26, 0.34);
+    this.drawCylinder(this.metalMaterial, 0, 0, -0.38, 0.08, 0.42);
+    this.drawSphere(this.wagonWoodMaterial, 0, 0, -0.56, 0.27, 0.27, 0.08);
+    this.drawSphere(this.wagonWoodMaterial, 0, 0, -0.12, 0.25, 0.25, 0.06);
+    this.drawSphere(this.metalMaterial, 0, 0, -0.62, 0.08, 0.08, 0.05);
+
+    for (let i = 0; i < 18; i++) {
+      const angle = (Math.PI * 2 * i) / 18;
+      this.displayWheelSpoke(angle);
     }
 
-    for (let i = 0; i < 10; i++) {
-      const angle = (Math.PI * 2 * i) / 10;
-      this.drawSphere(this.metalMaterial, Math.cos(angle) * 0.74, Math.sin(angle) * 0.74, -0.55, 0.055, 0.055, 0.025);
-    }
+    this.scene.popMatrix();
+  }
 
+  displayWheelSpoke(angle) {
+    const innerRadius = 0.25;
+    const outerRadius = 0.77;
+    const length = outerRadius - innerRadius;
+    const midpoint = innerRadius + length * 0.5;
+
+    this.wagonWoodMaterial.apply();
+    this.scene.pushMatrix();
+    this.scene.translate(Math.cos(angle) * midpoint, Math.sin(angle) * midpoint, -0.32);
+    this.scene.rotate(angle, 0, 0, 1);
+    this.scene.rotate(Math.PI / 2, 0, 1, 0);
+    this.scene.scale(0.022, 0.022, length);
+    this.scene.translate(0, 0, -0.5);
+    this.cylinderMesh.display();
     this.scene.popMatrix();
   }
 
   displayAxle(z, wheelRotation, steeringAngle = 0) {
     this.scene.pushMatrix();
     this.scene.translate(0, 0.7, z);
-    this.drawCylinder(this.metalMaterial, 0, 0, 0, 0.08, 4.0, 0, Math.PI / 2, 0);
-    this.woodBox(0, 0.18, 0, 1.25, 0.06, 0.12);
+    this.drawCylinder(this.metalMaterial, 0, 0, 0, 0.045, 3.78, 0, Math.PI / 2, 0);
+    this.woodBox(0, 0.18, 0, 1.1, 0.045, 0.1);
 
     this.scene.pushMatrix();
     this.scene.translate(-1.85, 0, 0);
@@ -130,9 +150,10 @@ export class MyWagon extends CGFobject {
   }
 
   displayCabin() {
-    for (let i = -2; i <= 2; i++) this.woodBox(i * 0.55, 1.0, 0, 0.22, 0.08, 3.08);
+    for (let i = -2; i <= 2; i++) {
+      this.woodBox(i * 0.55, 1.0, 0, 0.22, 0.08, 3.08);
+    }
     this.woodBox(0, 0.84, -2.9, 1.55, 0.13, 0.1);
-    this.woodBox(0, 0.84, 2.9, 1.55, 0.13, 0.1);
 
     for (const side of [-1, 1]) {
       this.woodBox(side * 1.48, 1.32, 0, 0.055, 0.42, 3.0);
@@ -144,11 +165,11 @@ export class MyWagon extends CGFobject {
       }
     }
 
-    this.woodBox(0, 1.38, 3.2, 1.2, 0.1, 0.5);
-    this.woodBox(0, 1.72, 2.98, 1.2, 0.45, 0.08, -0.25, 0, 0);
-    this.woodBox(0, 1.02, 3.95, 0.9, 0.05, 0.35, -0.45, 0, 0);
-    this.woodBox(-0.92, 1.2, 3.35, 0.08, 0.55, 0.08);
-    this.woodBox(0.92, 1.2, 3.35, 0.08, 0.55, 0.08);
+  }
+
+  displayDriverSeat() {
+    this.woodBox(0, 1.08, 2.62, 1.24, 0.12, 0.34);
+    this.woodBox(0, 1.36, 2.34, 1.2, 0.28, 0.08);
   }
 
   displayRoof() {
@@ -162,7 +183,7 @@ export class MyWagon extends CGFobject {
     this.scene.popMatrix();
     this.scene.gl.enable(this.scene.gl.CULL_FACE);
 
-    for (let z = -2.85; z <= 2.86; z += 0.95) {
+    for (let z = -2.85; z <= 2.0; z += 0.95) {
       this.drawCylinder(this.metalMaterial, 0, 1.78, z, 0.024, 2.65, 0, Math.PI / 2, 0);
       this.woodBox(0, 1.85, z, 1.42, 0.035, 0.04);
     }
@@ -181,10 +202,6 @@ export class MyWagon extends CGFobject {
   }
 
   displayDetails() {
-    for (const x of [-1.3, 1.3]) {
-      this.drawSphere(this.lampMaterial, x, 1.55, 3.35, 0.13, 0.13, 0.13);
-      this.drawCylinder(this.metalMaterial, x, 1.38, 3.35, 0.025, 0.22, -Math.PI / 2, 0, 0);
-    }
     for (const x of [-1.1, 1.1]) {
       for (const z of [-2.4, 2.4]) this.drawSphere(this.metalMaterial, x, 1.13, z, 0.055, 0.055, 0.055);
     }
@@ -207,6 +224,7 @@ export class MyWagon extends CGFobject {
   display(wheelRotation = 0, steeringAngle = 0) {
     this.scene.pushMatrix();
     this.displayCabin();
+    this.displayDriverSeat();
     this.displayHarness();
     this.displayAxle(-2.0, wheelRotation, 0);
     this.displayAxle(2.0, wheelRotation, steeringAngle);
