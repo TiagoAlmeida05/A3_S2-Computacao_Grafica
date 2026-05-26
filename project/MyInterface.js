@@ -3,6 +3,9 @@ import { CGFinterface, dat } from "../lib/CGF.js";
 export class MyInterface extends CGFinterface {
     constructor() {
         super();
+        this.isDraggingChaseCamera = false;
+        this.lastMouseX = 0;
+        this.chaseDragSensitivity = 0.008;
     }
 
     init(application) {
@@ -21,6 +24,7 @@ export class MyInterface extends CGFinterface {
 
         window.addEventListener("keydown", (event) => this.handleKey(event, true), true);
         window.addEventListener("keyup", (event) => this.handleKey(event, false), true);
+        this.initChaseCameraDrag(application);
 
         const cloudFolder = this.gui.addFolder("Clouds");
         cloudFolder.add(this.scene, "enableClouds").name("Enable Clouds");
@@ -31,6 +35,40 @@ export class MyInterface extends CGFinterface {
             .onFinishChange(() => this.scene.initCloudSystem());
 
         return true;
+    }
+
+    initChaseCameraDrag(application) {
+        const canvas = application?.gl?.canvas;
+        if (!canvas) return;
+
+        canvas.addEventListener("mousedown", (event) => {
+            if (event.button !== 0 || this.scene.firstPersonCamera) return;
+            this.isDraggingChaseCamera = true;
+            this.lastMouseX = event.clientX;
+            canvas.style.cursor = "grabbing";
+            this.captureEvent(event);
+        }, true);
+
+        window.addEventListener("mousemove", (event) => {
+            if (!this.isDraggingChaseCamera || this.scene.firstPersonCamera) return;
+
+            const deltaX = event.clientX - this.lastMouseX;
+            this.lastMouseX = event.clientX;
+            this.scene.chaseOrbitAngle += deltaX * this.chaseDragSensitivity;
+            this.captureEvent(event);
+        }, true);
+
+        window.addEventListener("mouseup", (event) => {
+            if (!this.isDraggingChaseCamera || event.button !== 0) return;
+            this.isDraggingChaseCamera = false;
+            canvas.style.cursor = "";
+            this.captureEvent(event);
+        }, true);
+
+        window.addEventListener("blur", () => {
+            this.isDraggingChaseCamera = false;
+            canvas.style.cursor = "";
+        });
     }
 
     initGameplayUIFolder() {

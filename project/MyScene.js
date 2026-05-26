@@ -199,9 +199,10 @@ export class MyScene extends CGFscene {
     this.driverEyeHeight = 2.6;
     this.driverSeatOffset = 3.35;
     this.driverLookAhead = 14.0;
-    this.chaseDistance = 16.0;
+    this.chaseDistance = 23.0;
     this.chaseHeight = 6.0;
     this.chaseSideOffset = 13.0;
+    this.chaseOrbitAngle = Math.atan2(this.chaseSideOffset, this.chaseDistance);
     this.chaseLookAhead = 2.0;
     this.chaseLookHeight = 2.2;
     this.lastUpdateTime = null;
@@ -1026,11 +1027,14 @@ export class MyScene extends CGFscene {
     const rightZ = -Math.sin(this.wagonHeading);
 
     if (!this.firstPersonCamera && this.thirdPersonCamera) {
+      const orbitBack = Math.cos(this.chaseOrbitAngle);
+      const orbitSide = Math.sin(this.chaseOrbitAngle);
       const eye = vec3.fromValues(
-        this.wagonPosition.x - horizontalForwardX * this.chaseDistance + rightX * this.chaseSideOffset,
+        this.wagonPosition.x - horizontalForwardX * this.chaseDistance * orbitBack + rightX * this.chaseDistance * orbitSide,
         pose.y + this.chaseHeight,
-        this.wagonPosition.z - horizontalForwardZ * this.chaseDistance + rightZ * this.chaseSideOffset
+        this.wagonPosition.z - horizontalForwardZ * this.chaseDistance * orbitBack + rightZ * this.chaseDistance * orbitSide
       );
+      this.chaseSideOffset = this.chaseDistance * orbitSide;
       const target = vec3.fromValues(
         this.wagonPosition.x + horizontalForwardX * this.chaseLookAhead,
         pose.y + this.chaseLookHeight,
