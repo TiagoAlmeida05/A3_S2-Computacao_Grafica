@@ -19,7 +19,7 @@ export class MyInterface extends CGFinterface {
             .name("First Person Camera")
             .onChange(() => document.activeElement?.blur());
         this.gui.add(this.scene, "scaleFactor", 0.1, 5).name("Scale Factor");
-        this.initGameplayUIFolder();
+        
         this.initGameplayHUD();
 
         window.addEventListener("keydown", (event) => this.handleKey(event, true), true);
@@ -71,154 +71,117 @@ export class MyInterface extends CGFinterface {
         });
     }
 
-    initGameplayUIFolder() {
-        const gameplayFolder = this.gui.addFolder("Gameplay UI");
-        this.readOnlyControllers = [
-            gameplayFolder.add(this.scene, "healthLabel").name("Current HP").listen(),
-            gameplayFolder.add(this.scene, "healthPercent", 0, 100).name("HP Bar (%)").listen(),
-            gameplayFolder.add(this.scene, "instantDamageHp").name("Collision Damage").listen(),
-            gameplayFolder.add(this.scene, "instantRestoredHp").name("Restored HP").listen(),
-            gameplayFolder.add(this.scene, "balesAtBarn").name("Bales at Barn").listen(),
-            gameplayFolder.add(this.scene, "scoreLabel").name("Score").listen(),
-            gameplayFolder.add(this.scene, "gameStatus").name("Status").listen()
-        ];
-
-        for (const controller of this.readOnlyControllers) {
-            controller.domElement.style.pointerEvents = "none";
-            controller.domElement.style.opacity = "0.82";
-        }
-
-        gameplayFolder.open();
-    }
-
     initGameplayHUD() {
-        const existing = document.getElementById("gameplay-hud");
+        const existing = document.getElementById("gameplay-hud-container");
         if (existing) existing.remove();
 
-        const style = document.createElement("style");
-        style.id = "gameplay-hud-style";
-        style.textContent = `
-            #gameplay-hud {
-                position: fixed;
-                top: 18px;
-                left: 18px;
-                width: min(360px, calc(100vw - 36px));
-                color: #f8faf8;
-                font-family: Arial, Helvetica, sans-serif;
-                pointer-events: none;
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-                z-index: 10;
-            }
-            #gameplay-hud .hud-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                gap: 12px;
-                margin-bottom: 8px;
-            }
-            #gameplay-hud .hud-title {
-                font-size: 13px;
-                font-weight: 700;
-                letter-spacing: 0;
-                text-transform: uppercase;
-            }
-            #gameplay-hud .hud-value {
-                font-size: 15px;
-                font-weight: 700;
-            }
-            #gameplay-hud .health-track {
-                height: 18px;
-                border: 1px solid rgba(255, 255, 255, 0.58);
-                background: rgba(18, 23, 20, 0.58);
-                box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
-            }
-            #gameplay-hud .health-fill {
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, #5fd46b, #c8e35b);
-                transition: width 160ms linear, background 160ms linear;
-            }
-            #gameplay-hud .hud-metrics {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 8px;
-                margin-top: 10px;
-            }
-            #gameplay-hud .hud-metric {
-                min-width: 0;
-                padding: 7px 8px;
-                background: rgba(18, 23, 20, 0.62);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            }
-            #gameplay-hud .hud-metric-label {
-                display: block;
-                font-size: 10px;
-                color: rgba(248, 250, 248, 0.72);
-            }
-            #gameplay-hud .hud-metric-value {
-                display: block;
-                margin-top: 2px;
-                font-size: 14px;
-                font-weight: 700;
-                white-space: nowrap;
-            }
-        `;
+        this.hudContainer = document.createElement("div");
+        this.hudContainer.id = "gameplay-hud-container";
+        this.hudContainer.style.position = 'absolute';
+        this.hudContainer.style.top = '0';
+        this.hudContainer.style.left = '0';
+        this.hudContainer.style.width = '100vw';
+        this.hudContainer.style.height = '100vh';
+        this.hudContainer.style.pointerEvents = 'none'; 
+        this.hudContainer.style.fontFamily = 'Arial, sans-serif';
+        this.hudContainer.style.zIndex = '999';
 
-        const previousStyle = document.getElementById("gameplay-hud-style");
-        if (previousStyle) previousStyle.remove();
-        document.head.appendChild(style);
+        this.hudContainer.innerHTML = `
+            <div id="start-screen" style="position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto;">
+                <h1 style="color: white; font-size: 60px; margin-bottom: 20px; text-shadow: 2px 2px 4px black;">Wagon Trail</h1>
+                <p style="color: lightgray; font-size: 20px; margin-bottom: 40px;">Drive the wagon. Don't run out of health!</p>
+                <button id="start-btn" style="padding: 15px 40px; font-size: 24px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">START GAME</button>
+            </div>
 
-        this.hud = document.createElement("div");
-        this.hud.id = "gameplay-hud";
-        this.hud.innerHTML = `
-            <div class="hud-row">
-                <span class="hud-title">Wagon HP</span>
-                <span class="hud-value" data-hud="hpLabel">100 / 100 HP</span>
+            <div id="hud-screen" style="position: absolute; top: 20px; left: 20px; display: none; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
+                
+                <div style="color: #FFD700; font-size: 26px; font-weight: bold; margin-bottom: 15px; text-shadow: 2px 2px 2px black;">
+                    Score: <span id="score-text">0</span>
+                </div>
+                
+                <div style="color: white; font-size: 18px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black;">
+                    Health: <span id="hp-text">100 / 100 HP</span>
+                </div>
+                <div style="width: 250px; height: 25px; background: rgba(0,0,0,0.8); border: 2px solid white; border-radius: 12px; overflow: hidden; margin-bottom: 15px;">
+                    <div id="hp-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #cc0000, #ff4444); transition: width 0.2s linear;"></div>
+                </div>
+
+                <div style="font-size: 16px; font-weight: bold; text-shadow: 1px 1px 2px black;">
+                    <div style="color: #ff6666; margin-bottom: 5px;">Recent Damage: <span id="dmg-text">-0.0</span></div>
+                    <div style="color: #66ff66;">Recent Restored: <span id="heal-text">+0.0</span></div>
+                </div>
             </div>
-            <div class="health-track">
-                <div class="health-fill" data-hud="hpFill"></div>
-            </div>
-            <div class="hud-metrics">
-                <span class="hud-metric">
-                    <span class="hud-metric-label">Score</span>
-                    <span class="hud-metric-value" data-hud="score">0</span>
-                </span>
-                <span class="hud-metric">
-                    <span class="hud-metric-label">Damage</span>
-                    <span class="hud-metric-value" data-hud="damage">0 HP</span>
-                </span>
-                <span class="hud-metric">
-                    <span class="hud-metric-label">Restored</span>
-                    <span class="hud-metric-value" data-hud="restored">0 HP</span>
-                </span>
+
+            <div id="game-over-screen" style="position: absolute; width: 100%; height: 100%; background: rgba(100,0,0,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto;">
+                <h1 style="color: white; font-size: 70px; margin-bottom: 10px; text-shadow: 2px 2px 4px black;">GAME OVER</h1>
+                <h2 style="color: lightgray; font-size: 30px; margin-bottom: 40px;">The horses are too tired to continue!</h2>
+                <button id="restart-btn" style="padding: 15px 40px; font-size: 24px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">PLAY AGAIN</button>
             </div>
         `;
-        document.body.appendChild(this.hud);
+        document.body.appendChild(this.hudContainer);
+
+        document.getElementById('start-btn').addEventListener('click', () => this.startGame());
+        document.getElementById('restart-btn').addEventListener('click', () => this.startGame());
+    }
+
+    startGame() {
+        if (!this.scene) return;
+        
+        this.scene.gameStatus = "Running";
+        this.scene.currentHealthPoints = this.scene.maxHealthPoints;
+        this.scene.scoreTime = 0;
+        this.scene.instantDamageHp = 0;
+        this.scene.instantRestoredHp = 0;
+
+        this.scene.wagonPosition = { x: 10, z: 10 };
+        this.scene.wagonHeading = Math.PI;
+        this.scene.wagonSpeed = 0;
+        this.scene.wagonSteering = 0;
+        this.scene.wagonWheelAngle = 0;
+
+        this.scene.updateGameplayLabels();
         this.updateGameplayHUD();
     }
 
     updateGameplayHUD() {
-        if (!this.hud || !this.scene) return;
+        if (!this.hudContainer || !this.scene) return;
+
+        const startScreen = document.getElementById("start-screen");
+        const gameOverScreen = document.getElementById("game-over-screen");
+        const hud = document.getElementById("hud-screen");
+
+        if (this.scene.gameStatus === "START") {
+            if (startScreen) startScreen.style.display = "flex";
+            if (gameOverScreen) gameOverScreen.style.display = "none";
+            if (hud) hud.style.display = "none";
+            return; 
+        } else if (this.scene.gameStatus === "HP Depleted" || this.scene.gameStatus === "GAMEOVER") {
+            if (startScreen) startScreen.style.display = "none";
+            if (gameOverScreen) gameOverScreen.style.display = "flex";
+            if (hud) hud.style.display = "none";
+            return;
+        } else {
+            if (startScreen) startScreen.style.display = "none";
+            if (gameOverScreen) gameOverScreen.style.display = "none";
+            if (hud) hud.style.display = "block";
+        }
 
         const healthPercent = Math.max(0, Math.min(100, this.scene.healthPercent || 0));
-        const fill = this.hud.querySelector('[data-hud="hpFill"]');
-        const hpLabel = this.hud.querySelector('[data-hud="hpLabel"]');
-        const score = this.hud.querySelector('[data-hud="score"]');
-        const damage = this.hud.querySelector('[data-hud="damage"]');
-        const restored = this.hud.querySelector('[data-hud="restored"]');
+        
+        // Target your exact IDs from the HTML string
+        const fill = document.getElementById('hp-bar');
+        const hpLabel = document.getElementById('hp-text');
+        const score = document.getElementById('score-text');
+        const damage = document.getElementById('dmg-text');
+        const restored = document.getElementById('heal-text');
 
         if (fill) {
             fill.style.width = `${healthPercent}%`;
-            fill.style.background = healthPercent > 55
-                ? "linear-gradient(90deg, #5fd46b, #c8e35b)"
-                : healthPercent > 25
-                    ? "linear-gradient(90deg, #f2b84b, #f0dc5a)"
-                    : "linear-gradient(90deg, #e34d45, #f28b54)";
         }
-        if (hpLabel) hpLabel.textContent = this.scene.healthLabel;
-        if (score) score.textContent = this.scene.scoreLabel;
-        if (damage) damage.textContent = `${Number(this.scene.instantDamageHp || 0).toFixed(1)} HP`;
-        if (restored) restored.textContent = `${Number(this.scene.instantRestoredHp || 0).toFixed(1)} HP`;
+        if (hpLabel) hpLabel.textContent = this.scene.healthLabel || "100.0 / 100 HP";
+        if (score) score.textContent = this.scene.scoreLabel || "0";
+        if (damage) damage.textContent = `-${Number(this.scene.instantDamageHp || 0).toFixed(1)}`;
+        if (restored) restored.textContent = `+${Number(this.scene.instantRestoredHp || 0).toFixed(1)}`;
     }
 
     update() {
@@ -228,6 +191,8 @@ export class MyInterface extends CGFinterface {
 
     handleKey(event, pressed) {
         if (!this.scene?.wagonInput) return false;
+
+        if (this.scene.gameStatus !== "Running") return false;
 
         if (pressed && event.code === "KeyC") {
             this.captureEvent(event);

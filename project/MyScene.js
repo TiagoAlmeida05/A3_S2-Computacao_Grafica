@@ -235,7 +235,7 @@ export class MyScene extends CGFscene {
     this.scoreValue = 0;
     this.scoreLabel = "0";
     this.healthLabel = "100 / 100 HP";
-    this.gameStatus = "Running";
+    this.gameStatus = "START";
     this.lastGameplayUpdateTime = null;
   }
 
@@ -271,9 +271,14 @@ export class MyScene extends CGFscene {
       ? Number(((displayedHealth / this.maxHealthPoints) * 100).toFixed(1))
       : 0;
     this.healthLabel = `${displayedHealth.toFixed(1)} / ${this.maxHealthPoints} HP`;
+    
     this.scoreValue = Math.floor(this.scoreTime);
     this.scoreLabel = `${this.scoreValue}`;
-    this.gameStatus = this.currentHealthPoints > 0 ? "Running" : "HP Depleted";
+
+    if (this.currentHealthPoints <= 0 && this.gameStatus === "Running") {
+      this.currentHealthPoints = 0; // Prevent negative HP display
+      this.gameOver();
+    }
   }
 
   updateGameplayUI(currTime) {
@@ -285,6 +290,9 @@ export class MyScene extends CGFscene {
 
     const dt = Math.min((currTime - this.lastGameplayUpdateTime) * 0.001, 0.1);
     this.lastGameplayUpdateTime = currTime;
+    
+    if (this.gameStatus !== "Running") return; 
+
     if (dt <= 0) return;
 
     this.scoreTime += dt;
@@ -549,6 +557,11 @@ export class MyScene extends CGFscene {
     }
 
     this.cloudLayer = new MyCloudLayer(this, this.cloudInstances, this.cloudShader);
+  }
+
+  gameOver() {
+    this.gameStatus = "GAMEOVER";
+    this.wagonSpeed = 0;
   }
 
   generateCloudInstances() {
@@ -1092,6 +1105,9 @@ export class MyScene extends CGFscene {
 
     const dt = Math.min((currTime - this.lastUpdateTime) * 0.001, 0.1);
     this.lastUpdateTime = currTime;
+    
+    if (this.gameStatus !== "Running") return;
+
     if (dt <= 0) return;
 
     const steerInput = (this.wagonInput.left ? 1 : 0) - (this.wagonInput.right ? 1 : 0);
