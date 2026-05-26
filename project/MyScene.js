@@ -228,8 +228,8 @@ export class MyScene extends CGFscene {
     this.currentHealthPoints = this.maxHealthPoints;
     this.healthLossPerSecond = 1.0;
     this.healthPercent = 100;
-    this.instantDamageHp = 0;
-    this.instantRestoredHp = 0;
+    this.totalDamageTaken = 0;
+    this.totalHealthRestored = 0;
     this.balesAtBarn = 0;
     this.scoreTime = 0;
     this.scoreValue = 0;
@@ -237,13 +237,16 @@ export class MyScene extends CGFscene {
     this.healthLabel = "100 / 100 HP";
     this.gameStatus = "START";
     this.lastGameplayUpdateTime = null;
+
+    this.wagonHitboxRadius = 1.5; 
+    this.collisionCooldown = 0;
   }
 
   applyHealthDamage(amount) {
     const damage = Math.max(0, amount);
     if (damage <= 0) return;
 
-    this.instantDamageHp = Number(damage.toFixed(1));
+    this.totalDamageTaken += damage; 
     this.currentHealthPoints = this.clamp(
       this.currentHealthPoints - damage,
       0,
@@ -256,7 +259,7 @@ export class MyScene extends CGFscene {
     const restored = Math.max(0, amount);
     if (restored <= 0) return;
 
-    this.instantRestoredHp = Number(restored.toFixed(1));
+    this.totalHealthRestored += restored;
     this.currentHealthPoints = this.clamp(
       this.currentHealthPoints + restored,
       0,
@@ -276,9 +279,47 @@ export class MyScene extends CGFscene {
     this.scoreLabel = `${this.scoreValue}`;
 
     if (this.currentHealthPoints <= 0 && this.gameStatus === "Running") {
-      this.currentHealthPoints = 0; // Prevent negative HP display
+      this.currentHealthPoints = 0; 
       this.gameOver();
     }
+  }
+
+  checkCollisions(dt) {
+    if (this.collisionCooldown > 0) this.collisionCooldown -= dt;
+
+    if (this.collisionCooldown <= 0) {
+      let hitSolid = false;
+      const obstacles = [...this.rockInstances, ...this.pineInstances, ...this.leafyInstances, ...this.deadInstances];
+      
+      for (const item of obstacles) {
+        const dist = Math.hypot(this.wagonPosition.x - item.x, this.wagonPosition.z - item.z);
+        if (dist < (item.scale * 1.5) + this.wagonHitboxRadius) {
+          hitSolid = true; break;
+        }
+      }
+
+      if (hitSolid) {
+        this.applyHealthDamage(10);
+        this.collisionCooldown = 1.5;
+        this.wagonSpeed *= 0.3;
+      }
+    }
+
+    let inWater = false;
+    if (this.pondInstances) {
+      for (const pond of this.pondInstances) {
+        const pondRadius = Math.max(pond.scaleX, pond.scaleZ) * 0.8;
+        if (Math.hypot(this.wagonPosition.x - pond.x, this.wagonPosition.z - pond.z) < pondRadius) {
+          inWater = true; break;
+        }
+      }
+    }
+
+    if (inWater) {
+      this.applyHealthDamage(5.0 * dt); 
+    }
+
+    return this.healthLossPerSecond;
   }
 
   updateGameplayUI(currTime) {
@@ -292,14 +333,15 @@ export class MyScene extends CGFscene {
     this.lastGameplayUpdateTime = currTime;
     
     if (this.gameStatus !== "Running") return; 
-
     if (dt <= 0) return;
 
     this.scoreTime += dt;
 
+    this.checkCollisions(dt);
+
     if (this.currentHealthPoints > 0) {
       this.currentHealthPoints = this.clamp(
-        this.currentHealthPoints - this.healthLossPerSecond * dt,
+        this.currentHealthPoints - (this.healthLossPerSecond * dt),
         0,
         this.maxHealthPoints
       );

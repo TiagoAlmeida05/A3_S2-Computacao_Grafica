@@ -107,8 +107,8 @@ export class MyInterface extends CGFinterface {
                 </div>
 
                 <div style="font-size: 16px; font-weight: bold; text-shadow: 1px 1px 2px black;">
-                    <div style="color: #ff6666; margin-bottom: 5px;">Recent Damage: <span id="dmg-text">-0.0</span></div>
-                    <div style="color: #66ff66;">Recent Restored: <span id="heal-text">+0.0</span></div>
+                    <div style="color: #ff6666; margin-bottom: 5px;">Total Damage Taken: <span id="dmg-text">-0.0</span></div>
+                    <div style="color: #66ff66;">Total Health Restored: <span id="heal-text">+0.0</span></div>
                 </div>
             </div>
 
@@ -130,8 +130,8 @@ export class MyInterface extends CGFinterface {
         this.scene.gameStatus = "Running";
         this.scene.currentHealthPoints = this.scene.maxHealthPoints;
         this.scene.scoreTime = 0;
-        this.scene.instantDamageHp = 0;
-        this.scene.instantRestoredHp = 0;
+        this.totalDamageTaken = 0;
+        this.totalHealthRestored = 0;
 
         this.scene.wagonPosition = { x: 10, z: 10 };
         this.scene.wagonHeading = Math.PI;
@@ -180,8 +180,8 @@ export class MyInterface extends CGFinterface {
         }
         if (hpLabel) hpLabel.textContent = this.scene.healthLabel || "100.0 / 100 HP";
         if (score) score.textContent = this.scene.scoreLabel || "0";
-        if (damage) damage.textContent = `-${Number(this.scene.instantDamageHp || 0).toFixed(1)}`;
-        if (restored) restored.textContent = `+${Number(this.scene.instantRestoredHp || 0).toFixed(1)}`;
+        if (damage) damage.textContent = `-${Number(this.scene.totalDamageTaken || 0).toFixed(1)}`;
+        if (restored) restored.textContent = `+${Number(this.scene.totalHealthRestored || 0).toFixed(1)}`;
     }
 
     update() {
