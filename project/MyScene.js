@@ -193,6 +193,8 @@ export class MyScene extends CGFscene {
     this.dropZoneCenter = { x: 0, z: 2.3 };
     this.dropZoneRadius = 2.2;
 
+    this.initGameplayUIState();
+
     this.firstPersonCamera = false;
     this.driverEyeHeight = 2.6;
     this.driverSeatOffset = 3.35;
@@ -218,6 +220,83 @@ export class MyScene extends CGFscene {
     this.initScatterElements();
     this.initGrassSystem();
     this.initFloraSystem();
+  }
+
+  initGameplayUIState() {
+    this.maxHealthPoints = 100;
+    this.currentHealthPoints = this.maxHealthPoints;
+    this.healthLossPerSecond = 1.0;
+    this.healthPercent = 100;
+    this.instantDamageHp = 0;
+    this.instantRestoredHp = 0;
+    this.balesAtBarn = 0;
+    this.scoreTime = 0;
+    this.scoreValue = 0;
+    this.scoreLabel = "0";
+    this.healthLabel = "100 / 100 HP";
+    this.gameStatus = "Running";
+    this.lastGameplayUpdateTime = null;
+  }
+
+  applyHealthDamage(amount) {
+    const damage = Math.max(0, amount);
+    if (damage <= 0) return;
+
+    this.instantDamageHp = Number(damage.toFixed(1));
+    this.currentHealthPoints = this.clamp(
+      this.currentHealthPoints - damage,
+      0,
+      this.maxHealthPoints
+    );
+    this.updateGameplayLabels();
+  }
+
+  applyHealthRestoration(amount) {
+    const restored = Math.max(0, amount);
+    if (restored <= 0) return;
+
+    this.instantRestoredHp = Number(restored.toFixed(1));
+    this.currentHealthPoints = this.clamp(
+      this.currentHealthPoints + restored,
+      0,
+      this.maxHealthPoints
+    );
+    this.updateGameplayLabels();
+  }
+
+  updateGameplayLabels() {
+    const displayedHealth = Number(this.currentHealthPoints.toFixed(1));
+    this.healthPercent = this.maxHealthPoints > 0
+      ? Number(((displayedHealth / this.maxHealthPoints) * 100).toFixed(1))
+      : 0;
+    this.healthLabel = `${displayedHealth.toFixed(1)} / ${this.maxHealthPoints} HP`;
+    this.scoreValue = Math.floor(this.scoreTime);
+    this.scoreLabel = `${this.scoreValue}`;
+    this.gameStatus = this.currentHealthPoints > 0 ? "Running" : "HP Depleted";
+  }
+
+  updateGameplayUI(currTime) {
+    if (this.lastGameplayUpdateTime === null) {
+      this.lastGameplayUpdateTime = currTime;
+      this.updateGameplayLabels();
+      return;
+    }
+
+    const dt = Math.min((currTime - this.lastGameplayUpdateTime) * 0.001, 0.1);
+    this.lastGameplayUpdateTime = currTime;
+    if (dt <= 0) return;
+
+    this.scoreTime += dt;
+
+    if (this.currentHealthPoints > 0) {
+      this.currentHealthPoints = this.clamp(
+        this.currentHealthPoints - this.healthLossPerSecond * dt,
+        0,
+        this.maxHealthPoints
+      );
+    }
+
+    this.updateGameplayLabels();
   }
 
   initLights() {
@@ -1267,6 +1346,7 @@ export class MyScene extends CGFscene {
     this.skyTime = currTime * 0.001;
     this.cloudTime = currTime * 0.001;
 
+    this.updateGameplayUI(currTime);
     this.updateWagon(currTime);
     this.updateDropZoneStatus();
     this.updateActiveCamera();
