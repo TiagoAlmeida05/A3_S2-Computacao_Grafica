@@ -186,15 +186,22 @@ export class MyScene extends CGFscene {
     this.wagonSteerRate = 3.4;
     this.wagonSteerReturnRate = 1.8;
     this.wagonMaxSteer = Math.PI / 5;
-    this.wagonWheelRadius = 0.8;
-    this.wagonGroundClearance = 0.1;
+    this.wagonWheelRadius = 0.86;
+    this.wagonGroundClearance = 0.22;
     this.wagonTrackWidth = 3.7;
     this.wagonWheelBase = 4.0;
+    this.dropZoneCenter = { x: 0, z: 2.3 };
+    this.dropZoneRadius = 2.2;
 
     this.firstPersonCamera = false;
     this.driverEyeHeight = 2.6;
     this.driverSeatOffset = 3.35;
     this.driverLookAhead = 14.0;
+    this.chaseDistance = 16.0;
+    this.chaseHeight = 6.0;
+    this.chaseSideOffset = 13.0;
+    this.chaseLookAhead = 2.0;
+    this.chaseLookHeight = 2.2;
     this.lastUpdateTime = null;
 
     this.floraCount = 35;
@@ -888,11 +895,33 @@ export class MyScene extends CGFscene {
     const leftHeight = this.terrain.getHeightAt(left.x, left.z);
     const rightHeight = this.terrain.getHeightAt(right.x, right.z);
     const averageHeight = (centerHeight * 2 + frontHeight + rearHeight + leftHeight + rightHeight) / 6;
+    const pitch = Math.atan2(frontHeight - rearHeight, this.wagonWheelBase);
+    const roll = Math.atan2(rightHeight - leftHeight, this.wagonTrackWidth);
+
+    const contactPoints = [
+      { x: -halfTrack, z: -halfBase, localY: 0.7 - this.wagonWheelRadius },
+      { x: halfTrack, z: -halfBase, localY: 0.7 - this.wagonWheelRadius },
+      { x: -halfTrack, z: halfBase, localY: 0.7 - this.wagonWheelRadius },
+      { x: halfTrack, z: halfBase, localY: 0.7 - this.wagonWheelRadius },
+      { x: -0.78, z: 6.25, localY: 0.04 },
+      { x: 0.78, z: 6.25, localY: 0.04 }
+    ];
+
+    let requiredY = averageHeight + this.wagonGroundClearance;
+    for (const point of contactPoints) {
+      const world = this.getLocalPointOnWagon(point.x, point.z);
+      const groundY = this.terrain.getHeightAt(world.x, world.z);
+      const rotatedLocalY =
+        point.localY * Math.cos(pitch) * Math.cos(roll) +
+        point.z * Math.sin(pitch) -
+        point.x * Math.sin(roll);
+      requiredY = Math.max(requiredY, groundY - rotatedLocalY + this.wagonGroundClearance);
+    }
 
     return {
-      y: averageHeight + this.wagonGroundClearance,
-      pitch: Math.atan2(frontHeight - rearHeight, this.wagonWheelBase),
-      roll: Math.atan2(rightHeight - leftHeight, this.wagonTrackWidth)
+      y: requiredY,
+      pitch,
+      roll
     };
   }
 
@@ -911,11 +940,30 @@ export class MyScene extends CGFscene {
 
   updateActiveCamera() {
     this.camera = this.firstPersonCamera ? this.wagonCamera : this.thirdPersonCamera;
-    if (!this.firstPersonCamera || !this.wagonCamera) return;
-
     const pose = this.getWagonTerrainPose();
     const horizontalForwardX = Math.sin(this.wagonHeading);
     const horizontalForwardZ = Math.cos(this.wagonHeading);
+    const rightX = Math.cos(this.wagonHeading);
+    const rightZ = -Math.sin(this.wagonHeading);
+
+    if (!this.firstPersonCamera && this.thirdPersonCamera) {
+      const eye = vec3.fromValues(
+        this.wagonPosition.x - horizontalForwardX * this.chaseDistance + rightX * this.chaseSideOffset,
+        pose.y + this.chaseHeight,
+        this.wagonPosition.z - horizontalForwardZ * this.chaseDistance + rightZ * this.chaseSideOffset
+      );
+      const target = vec3.fromValues(
+        this.wagonPosition.x + horizontalForwardX * this.chaseLookAhead,
+        pose.y + this.chaseLookHeight,
+        this.wagonPosition.z + horizontalForwardZ * this.chaseLookAhead
+      );
+      this.thirdPersonCamera.setPosition(eye);
+      this.thirdPersonCamera.setTarget(target);
+      return;
+    }
+
+    if (!this.wagonCamera) return;
+
     const pitchedForwardY = Math.sin(pose.pitch);
     const pitchedForwardScale = Math.cos(pose.pitch);
     const forwardX = horizontalForwardX * pitchedForwardScale;
@@ -943,6 +991,14 @@ export class MyScene extends CGFscene {
 
   clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  updateDropZoneStatus() {
+    this.isWagonInDropZone =
+      Math.hypot(
+        this.wagonPosition.x - this.dropZoneCenter.x,
+        this.wagonPosition.z - this.dropZoneCenter.z
+      ) <= this.dropZoneRadius;
   }
 
   updateWagon(currTime) {
@@ -985,6 +1041,7 @@ export class MyScene extends CGFscene {
     this.wagonPosition.x = this.clamp(this.wagonPosition.x, -bounds, bounds);
     this.wagonPosition.z = this.clamp(this.wagonPosition.z, -bounds, bounds);
     this.wagonWheelAngle -= distance / this.wagonWheelRadius;
+    this.updateDropZoneStatus();
 
       if (this.wagon && this.wagon.update) {
           this.wagon.update(this.wagonSpeed, dt);
@@ -1211,6 +1268,7 @@ export class MyScene extends CGFscene {
     this.cloudTime = currTime * 0.001;
 
     this.updateWagon(currTime);
+    this.updateDropZoneStatus();
     this.updateActiveCamera();
   }
 }
