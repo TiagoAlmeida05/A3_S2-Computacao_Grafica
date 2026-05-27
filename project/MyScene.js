@@ -12,6 +12,7 @@ import { MyGrassBlade } from "./MyGrassBlade.js";
 import { MyFlora } from "./MyFlora.js";
 import { MyWagon } from './MyWagon.js';
 import { MyBarn } from "./MyBarn.js";
+import { MyDirtTrail } from "./MyDirtTrail.js";
 
 export class MyScene extends CGFscene {
   constructor() {
@@ -40,7 +41,7 @@ export class MyScene extends CGFscene {
     this.axis = new CGFaxis(this);
     this.terrain = new MyTerrain(
       this,
-      200,
+      400,
       100,
       7.0,
       8,
@@ -80,6 +81,16 @@ export class MyScene extends CGFscene {
     this.dirtTexture = new CGFtexture(this, "images/textures/dirt_diffuse.jpg");
     this.terrainAppearance.setTexture(this.grassTexture);
     this.terrainAppearance.setTextureWrap("REPEAT", "REPEAT");
+
+    this.dirtTrail = new MyDirtTrail(this, this.terrain.size - 1.0, 6.0, 240, 10, 26);
+    this.dirtTrailClearance = 2.4;
+    this.dirtTrailAppearance = new CGFappearance(this);
+    this.dirtTrailAppearance.setAmbient(0.42, 0.32, 0.22, 1.0);
+    this.dirtTrailAppearance.setDiffuse(0.62, 0.48, 0.34, 1.0);
+    this.dirtTrailAppearance.setSpecular(0.02, 0.02, 0.02, 1.0);
+    this.dirtTrailAppearance.setShininess(2.0);
+    this.dirtTrailAppearance.setTexture(this.dirtTexture);
+    this.dirtTrailAppearance.setTextureWrap("REPEAT", "REPEAT");
 
     this.barnMaterials = {
       barnRed: new CGFappearance(this),
@@ -160,14 +171,14 @@ export class MyScene extends CGFscene {
 
     this.enableGrass = true;
     this.enableFlora = true;
-    this.grassPatchCount = 55;
+    this.grassPatchCount = 120;
     this.grassPatchMinScale = 2.0;
     this.grassPatchMaxScale = 3.6;
-    this.grassBladesMin = 45;
-    this.grassBladesMax = 85;
+    this.grassBladesMin = 80;
+    this.grassBladesMax = 150;
     this.grassDeadPatchChance = 0.15;
     this.grassFlatSlope = 0.5;
-    this.grassMaxDistance = 60;
+    this.grassMaxDistance = 150;
     this.grassMaxTotalBlades = 5000;
     this.grassLodNear = 16;
     this.grassLodMid = 28;
@@ -187,7 +198,7 @@ export class MyScene extends CGFscene {
     this.wagonSteerReturnRate = 1.8;
     this.wagonMaxSteer = Math.PI / 5;
     this.wagonWheelRadius = 0.86;
-    this.wagonGroundClearance = 0.22;
+    this.wagonGroundClearance = 0;
     this.wagonTrackWidth = 3.7;
     this.wagonWheelBase = 4.0;
     this.dropZoneCenter = { x: 0, z: 2.3 };
@@ -207,7 +218,7 @@ export class MyScene extends CGFscene {
     this.chaseLookHeight = 2.2;
     this.lastUpdateTime = null;
 
-    this.floraCount = 35;
+    this.floraCount = 90;
     this.floraMinScale = 0.7;
     this.floraMaxScale = 1.6;
     this.floraFlatSlope = 0.45;
@@ -404,11 +415,11 @@ export class MyScene extends CGFscene {
     this.scatterBounds = halfSize * 0.9;
     this.centerClearRadius = 12;
 
-    this.rockInstances = this.generateScatter(10, 0.6, 1.4, 0.7);
-    this.pineInstances = this.generateScatter(8, 1.4, 2.3, 0.45);
-    this.leafyInstances = this.generateScatter(6, 1.2, 1.9, 0.45);
+    this.rockInstances = this.generateScatter(30, 0.6, 1.4, 0.7);
+    this.pineInstances = this.generateScatter(25, 1.4, 2.3, 0.45);
+    this.leafyInstances = this.generateScatter(10, 1.2, 1.9, 0.45);
     this.deadInstances = this.generateScatter(3, 1.2, 1.8, 0.45);
-    this.grassInstances = this.generateScatter(24, 0.4, 0.9, 0.5);
+    this.grassInstances = this.generateScatter(21, 0.4, 0.9, 0.5, true);
   }
 
   initWaterPonds() {
@@ -447,7 +458,8 @@ export class MyScene extends CGFscene {
       .filter((point) =>
         Math.abs(point.x) <= bounds &&
         Math.abs(point.z) <= bounds &&
-        Math.hypot(point.x, point.z) >= this.centerClearRadius
+        Math.hypot(point.x, point.z) >= this.centerClearRadius &&
+        !this.isInsideDirtTrail(point.x, point.z, maxRadius + this.dirtTrailClearance)
       )
       .map((point) => ({ point, sort: this.pondRandom() }))
       .sort((a, b) => a.sort - b.sort)
@@ -459,6 +471,8 @@ export class MyScene extends CGFscene {
       const radius = this.pondMinRadius + (this.pondMaxRadius - this.pondMinRadius) * this.pondRandom();
       const scaleX = radius * (0.85 + 0.3 * this.pondRandom());
       const scaleZ = radius * (0.85 + 0.3 * this.pondRandom());
+      if (this.isInsideDirtTrail(point.x, point.z, Math.max(scaleX, scaleZ) + this.dirtTrailClearance)) continue;
+
       const minDistance = Math.max(scaleX, scaleZ) + this.pondMaxRadius * 0.9;
       const overlaps = this.pondInstances.some((pond) => {
         const otherRadius = Math.max(pond.scaleX, pond.scaleZ);
@@ -478,6 +492,8 @@ export class MyScene extends CGFscene {
         const radius = this.pondMinRadius + (this.pondMaxRadius - this.pondMinRadius) * this.pondRandom();
         const scaleX = radius * (0.85 + 0.3 * this.pondRandom());
         const scaleZ = radius * (0.85 + 0.3 * this.pondRandom());
+        if (this.isInsideDirtTrail(point.x, point.z, Math.max(scaleX, scaleZ) + this.dirtTrailClearance)) continue;
+
         const overlaps = this.pondInstances.some((pond) =>
           Math.hypot(point.x - pond.x, point.z - pond.z) <
           Math.max(scaleX, scaleZ) + Math.max(pond.scaleX, pond.scaleZ) + 1.5
@@ -506,6 +522,8 @@ export class MyScene extends CGFscene {
         const radius = this.pondMinRadius + (this.pondMaxRadius - this.pondMinRadius) * this.pondRandom();
         const scaleX = radius * (0.85 + 0.3 * this.pondRandom());
         const scaleZ = radius * (0.85 + 0.3 * this.pondRandom());
+        if (this.isInsideDirtTrail(x, z, Math.max(scaleX, scaleZ) + this.dirtTrailClearance)) continue;
+
         const overlaps = this.pondInstances.some((pond) =>
           Math.hypot(x - pond.x, z - pond.z) <
           Math.max(scaleX, scaleZ) + Math.max(pond.scaleX, pond.scaleZ) + 2.0
@@ -730,6 +748,7 @@ export class MyScene extends CGFscene {
       const scale = this.grassPatchMinScale + (this.grassPatchMaxScale - this.grassPatchMinScale) * random();
       const patchRadius = scale * 1.8;
       if (this.isInsidePond(x, z, patchRadius + 0.6)) continue;
+      if (this.isInsideDirtTrail(x, z, patchRadius + this.dirtTrailClearance)) continue;
 
       const y = this.getGroundY(x, z);
       const rotation = random() * Math.PI * 2;
@@ -755,6 +774,7 @@ export class MyScene extends CGFscene {
         const worldZ = z + (offsetX * scale) * sinR + (offsetZ * scale) * cosR;
 
         if (this.isInsidePond(worldX, worldZ, 0.35 * scale)) continue;
+        if (this.isInsideDirtTrail(worldX, worldZ, this.dirtTrailClearance)) continue;
 
         blades.push({
           offsetX,
@@ -807,6 +827,7 @@ export class MyScene extends CGFscene {
       if (Math.abs(x) > halfSize || Math.abs(z) > halfSize) continue;
       if (Math.hypot(x, z) < this.centerClearRadius) continue;
       if (this.isInsidePond(x, z, 0.8)) continue;
+      if (this.isInsideDirtTrail(x, z, this.dirtTrailClearance + 0.8)) continue;
       if (this.getTerrainSlope(x, z) > this.floraFlatSlope) continue;
 
       const y = this.getGroundY(x, z);
@@ -872,6 +893,14 @@ export class MyScene extends CGFscene {
     return Math.max(Math.abs(hx - h), Math.abs(hz - h));
   }
 
+  isInsideDirtTrail(x, z, margin = 0) {
+    if (!this.dirtTrail) return false;
+
+    const halfWidth = this.dirtTrail.width * 0.5 + margin;
+    const halfLength = this.dirtTrail.length * 0.5 + margin;
+    return Math.abs(x) <= halfWidth && Math.abs(z) <= halfLength;
+  }
+
   isInsidePond(x, z, margin = 0) {
     if (!this.pondInstances) return false;
     for (const pond of this.pondInstances) {
@@ -886,7 +915,7 @@ export class MyScene extends CGFscene {
     return false;
   }
 
-  generateScatter(count, minScale, maxScale, maxSlope = Infinity) {
+  generateScatter(count, minScale, maxScale, maxSlope = Infinity, avoidDirtTrail = false) {
     const items = [];
     const maxAttempts = count * 12;
 
@@ -902,6 +931,7 @@ export class MyScene extends CGFscene {
       const tint = 0.85 + 0.3 * this.random();
 
       if (this.isInsidePond(x, z, scale * 0.9)) continue;
+      if (avoidDirtTrail && this.isInsideDirtTrail(x, z, scale + this.dirtTrailClearance)) continue;
 
       items.push({ x, z, scale, rotation, tint });
     }
@@ -991,6 +1021,7 @@ export class MyScene extends CGFscene {
       }
     }
 
+    this.displayDirtTrail();
     this.displayPonds();
 
     this.displayScatter();
@@ -1340,6 +1371,18 @@ export class MyScene extends CGFscene {
 
     this.gl.disable(this.gl.BLEND);
     this.gl.depthMask(true);
+  }
+
+  displayDirtTrail() {
+    if (!this.displayPlane || !this.dirtTrail) return;
+
+    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.enable(this.gl.POLYGON_OFFSET_FILL);
+    this.gl.polygonOffset(-1.0, -1.0);
+    this.dirtTrailAppearance.apply();
+    this.dirtTrail.display();
+    this.gl.disable(this.gl.POLYGON_OFFSET_FILL);
+    this.gl.enable(this.gl.CULL_FACE);
   }
 
   displayScatter() {
