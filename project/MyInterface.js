@@ -95,8 +95,15 @@ export class MyInterface extends CGFinterface {
 
             <div id="hud-screen" style="position: absolute; top: 20px; left: 20px; display: none; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
                 
-                <div style="color: #FFD700; font-size: 26px; font-weight: bold; margin-bottom: 15px; text-shadow: 2px 2px 2px black;">
+                <div style="color: #FFD700; font-size: 26px; font-weight: bold; margin-bottom: 5px; text-shadow: 2px 2px 2px black;">
                     Score: <span id="score-text">0</span>
+                </div>
+
+                <div style="color: #66b3ff; font-size: 16px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black;">
+                    Wagon Cargo: <span id="cargo-text">0 / 3</span> Bales
+                </div>
+                <div style="color: #ffcc66; font-size: 16px; font-weight: bold; margin-bottom: 15px; text-shadow: 1px 1px 2px black;">
+                    Delivered to Barn: <span id="delivered-text">0</span> Bales
                 </div>
                 
                 <div style="color: white; font-size: 18px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black;">
@@ -138,9 +145,16 @@ export class MyInterface extends CGFinterface {
         this.scene.wagonSpeed = 0;
         this.scene.wagonSteering = 0;
         this.scene.wagonWheelAngle = 0;
+        
+        this.scene.balesAtBarn = 0;
+        this.scene.carriedHayCount = 0;
 
         this.scene.updateGameplayLabels();
         this.updateGameplayHUD();
+
+        if (this.scene.initHayPickups) {
+            this.scene.initHayPickups();
+        }
     }
 
     updateGameplayHUD() {
@@ -182,6 +196,20 @@ export class MyInterface extends CGFinterface {
         if (score) score.textContent = this.scene.scoreLabel || "0";
         if (damage) damage.textContent = `-${Number(this.scene.totalDamageTaken || 0).toFixed(1)}`;
         if (restored) restored.textContent = `+${Number(this.scene.totalHealthRestored || 0).toFixed(1)}`;
+
+        if (score) score.textContent = this.scene.scoreLabel || "0";
+        if (damage) damage.textContent = `-${Number(this.scene.totalDamageTaken || 0).toFixed(1)}`;
+        if (restored) restored.textContent = `+${Number(this.scene.totalHealthRestored || 0).toFixed(1)}`;
+
+        const cargoText = document.getElementById('cargo-text');
+        const deliveredText = document.getElementById('delivered-text');
+        
+        if (cargoText) {
+            cargoText.textContent = `${this.scene.carriedHayCount} / ${this.scene.maxCarriedHay}`;
+        }
+        if (deliveredText) {
+            deliveredText.textContent = this.scene.balesAtBarn;
+        }
     }
 
     update() {
