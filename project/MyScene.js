@@ -174,38 +174,37 @@ export class MyScene extends CGFscene {
     this.grassLodMid = 28;
     this.grassPatchHeightScale = 0.75;
 
-    this.wagonInput = { forward: false, braking: false, left: false, right: false };
-    this.wagonPosition = { x: 10, z: 10 };
+    this.wagonInput = { forward: false, braking: false, left: false, right: false, pickup: false, drop: false };    this.wagonPosition = { x: 10, z: 10 };
     this.wagonHeading = Math.PI;
     this.wagonSpeed = 0;
     this.wagonSteering = 0;
     this.wagonWheelAngle = 0;
-    this.wagonMaxSpeed = 20.0;
-    this.wagonAcceleration = 14.0;
-    this.wagonBrakeRate = 18.0;
+    this.wagonMaxSpeed = 8.0;
+    this.wagonAcceleration = 10.0;
+    this.wagonBrakeRate = 12.0;
     this.wagonTurnRate = 1.35;
     this.wagonSteerRate = 3.4;
     this.wagonSteerReturnRate = 1.8;
     this.wagonMaxSteer = Math.PI / 5;
-    this.wagonWheelRadius = 0.86;
+    this.wagonWheelRadius = 0.52;
     this.wagonGroundClearance = 0;
-    this.wagonTrackWidth = 3.7;
-    this.wagonWheelBase = 4.0;
+    this.wagonTrackWidth = 2.22;
+    this.wagonWheelBase = 2.4;
     this.dropZoneCenter = { x: 0, z: 2.3 };
-    this.dropZoneRadius = 2.2;
+    this.dropZoneRadius = 3.5;
 
     this.initGameplayUIState();
 
     this.firstPersonCamera = false;
-    this.driverEyeHeight = 2.6;
-    this.driverSeatOffset = 3.35;
+    this.driverEyeHeight = 1.56;
+    this.driverSeatOffset = 2.01;
     this.driverLookAhead = 14.0;
     this.chaseDistance = 23.0;
     this.chaseHeight = 6.0;
     this.chaseSideOffset = 13.0;
     this.chaseOrbitAngle = Math.atan2(this.chaseSideOffset, this.chaseDistance);
     this.chaseLookAhead = 2.0;
-    this.chaseLookHeight = 2.2;
+    this.chaseLookHeight = 1.32;
     this.lastUpdateTime = null;
     this.carriedHayCount = 0;
 
@@ -219,9 +218,9 @@ export class MyScene extends CGFscene {
     this.displayPlane = true;
 
     this.hayPickups = [];
-    this.maxHayPickups = 8;
+    this.maxHayPickups = 6;
     this.carriedHayCount = 0;
-    this.maxCarriedHay = 3;
+    this.maxCarriedHay = 2;
     
     
     this.initHayPickups();
@@ -247,7 +246,7 @@ export class MyScene extends CGFscene {
     this.gameStatus = "START";
     this.lastGameplayUpdateTime = null;
 
-    this.wagonHitboxRadius = 1.5; 
+    this.wagonHitboxRadius = 0.9; 
     this.collisionCooldown = 0;
   }
 
@@ -414,8 +413,8 @@ export class MyScene extends CGFscene {
     this.centerClearRadius = 12;
 
     this.rockInstances = this.generateScatter(10, 0.6, 1.4, 0.7);
-    this.pineInstances = this.generateScatter(8, 1.4, 2.3, 0.45);
-    this.leafyInstances = this.generateScatter(6, 1.2, 1.9, 0.45);
+    this.pineInstances = this.generateScatter(8, 3.2, 5.5, 0.45);   
+    this.leafyInstances = this.generateScatter(6, 2.8, 4.8, 0.45);  
     this.deadInstances = this.generateScatter(3, 1.2, 1.8, 0.45);
     this.grassInstances = this.generateScatter(24, 0.4, 0.9, 0.5);
   }
@@ -1025,7 +1024,10 @@ export class MyScene extends CGFscene {
 
     const currentTimeMillis = typeof performance !== "undefined" ? performance.now() : 0;
     for (const pickup of this.hayPickups) {
-        pickup.display(currentTimeMillis);
+        const distanceToWagon = Math.hypot(this.wagonPosition.x - pickup.x, this.wagonPosition.z - pickup.z);
+        const isNearWagon = distanceToWagon < 25.0; 
+        
+        pickup.display(currentTimeMillis, isNearWagon);
     }
 
     this.pushMatrix();
@@ -1102,6 +1104,9 @@ export class MyScene extends CGFscene {
     this.rotate(this.wagonHeading, 0, 1, 0);
     this.rotate(-pose.pitch, 1, 0, 0);
     this.rotate(pose.roll, 0, 0, 1);
+    
+    this.scale(0.6, 0.6, 0.6);
+    
     this.wagon.display(this.wagonWheelAngle, this.wagonSteering);
     this.popMatrix();
   }
@@ -1453,28 +1458,37 @@ export class MyScene extends CGFscene {
   }
 
   checkHayGameplayInteractions() {
-    for (const pickup of this.hayPickups) {
-        if (pickup.isPickedUp) continue;
+    // --- 1. MANUAL PICKUP ACTION (Key P) ---
+    if (this.wagonInput.pickup) {
+        for (const pickup of this.hayPickups) {
+            if (pickup.isPickedUp) continue;
 
-        const distanceToWagon = Math.hypot(this.wagonPosition.x - pickup.x, this.wagonPosition.z - pickup.z);
-        
-        if (distanceToWagon < (this.wagonHitboxRadius + 1.2)) {
-            if (this.carriedHayCount < this.maxCarriedHay) {
-                pickup.isPickedUp = true;
-                this.carriedHayCount++;
+            const distanceToWagon = Math.hypot(this.wagonPosition.x - pickup.x, this.wagonPosition.z - pickup.z);
+            
+            if (distanceToWagon < (this.wagonHitboxRadius + 2.0)) {
+                if (this.carriedHayCount < this.maxCarriedHay) {
+                    pickup.isPickedUp = true;
+                    this.carriedHayCount++;
+                    this.wagonInput.pickup = false; 
+                    break;
+                }
             }
         }
     }
 
-    if (this.isWagonInDropZone && this.carriedHayCount > 0) {
-        this.balesAtBarn += this.carriedHayCount;
-        this.carriedHayCount = 0; 
-        
-        this.scoreTime += 25.0; 
-        this.applyHealthRestoration(20);
+    if (this.wagonInput.drop && this.isWagonInDropZone) {
+        if (this.carriedHayCount > 0) {
+            this.balesAtBarn += this.carriedHayCount;
+            
+            const hpReward = 50 * this.carriedHayCount;
+            this.applyHealthRestoration(hpReward);
 
-        if (this.hayPickups.every(p => p.isPickedUp)) {
-            this.initHayPickups();
+            this.carriedHayCount = 0; 
+            this.wagonInput.drop = false;
+
+            if (this.hayPickups.every(p => p.isPickedUp)) {
+                this.initHayPickups();
+            }
         }
     }
   }

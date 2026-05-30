@@ -100,7 +100,7 @@ export class MyInterface extends CGFinterface {
                 </div>
 
                 <div style="color: #66b3ff; font-size: 16px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black;">
-                    Wagon Cargo: <span id="cargo-text">0 / 3</span> Bales
+                    Wagon Cargo: <span id="cargo-text">0 / 2</span> Bales
                 </div>
                 <div style="color: #ffcc66; font-size: 16px; font-weight: bold; margin-bottom: 15px; text-shadow: 1px 1px 2px black;">
                     Delivered to Barn: <span id="delivered-text">0</span> Bales
@@ -182,7 +182,6 @@ export class MyInterface extends CGFinterface {
 
         const healthPercent = Math.max(0, Math.min(100, this.scene.healthPercent || 0));
         
-        // Target your exact IDs from the HTML string
         const fill = document.getElementById('hp-bar');
         const hpLabel = document.getElementById('hp-text');
         const score = document.getElementById('score-text');
@@ -193,10 +192,6 @@ export class MyInterface extends CGFinterface {
             fill.style.width = `${healthPercent}%`;
         }
         if (hpLabel) hpLabel.textContent = this.scene.healthLabel || "100.0 / 100 HP";
-        if (score) score.textContent = this.scene.scoreLabel || "0";
-        if (damage) damage.textContent = `-${Number(this.scene.totalDamageTaken || 0).toFixed(1)}`;
-        if (restored) restored.textContent = `+${Number(this.scene.totalHealthRestored || 0).toFixed(1)}`;
-
         if (score) score.textContent = this.scene.scoreLabel || "0";
         if (damage) damage.textContent = `-${Number(this.scene.totalDamageTaken || 0).toFixed(1)}`;
         if (restored) restored.textContent = `+${Number(this.scene.totalHealthRestored || 0).toFixed(1)}`;
@@ -233,7 +228,9 @@ export class MyInterface extends CGFinterface {
         const keyMap = {
             KeyW: "forward",
             KeyA: "left",
-            KeyD: "right"
+            KeyD: "right",
+            KeyP: "pickup",
+            KeyL: "drop"
         };
         const action = keyMap[event.code];
 
