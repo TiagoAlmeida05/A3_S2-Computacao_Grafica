@@ -1390,11 +1390,11 @@ export class MyScene extends CGFscene {
 
   displayScatter() {
     for (const rock of this.rockInstances) {
-      const y = this.getGroundY(rock.x, rock.z, rock.scale * 0.7);
+      const y = this.getGroundY(rock.x, rock.z, rock.scale * 0.4);
       this.pushMatrix();
       this.translate(rock.x, y, rock.z);
       this.rotate(rock.rotation, 0, 1, 0);
-      this.scale(rock.scale, rock.scale * 0.7, rock.scale);
+      this.scale(rock.scale, rock.scale * 0.8, rock.scale);
       this.applyTintedAppearance(this.rockAppearance, rock.tint);
       this.rock.display();
       this.popMatrix();
