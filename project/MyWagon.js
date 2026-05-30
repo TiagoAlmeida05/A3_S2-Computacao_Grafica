@@ -4,6 +4,7 @@ import { MyCylinder } from "./MyCylinder.js";
 import { MyHalfCylinder } from "./MyHalfCylinder.js";
 import { MySphere } from "./MySphere.js";
 import { MyHorse } from "./MyHorse.js";
+import { MyHayBale } from "./MyHayBale.js";
 
 export class MyWagon extends CGFobject {
   constructor(scene) {
@@ -27,6 +28,7 @@ export class MyWagon extends CGFobject {
 
     this.horseLeft = new MyHorse(this.scene, 0);
     this.horseRight = new MyHorse(this.scene, Math.PI);
+    this.hayBaleCargo = new MyHayBale(this.scene, 0, 0, 0);
 
     this.darkMaterial = this.makeMaterial(0.035, 0.032, 0.03, 0.08, 0.075, 0.07, 0.25, 18);
     this.metalMaterial = this.makeMaterial(0.14, 0.13, 0.11, 0.38, 0.34, 0.28, 0.65, 50);
@@ -112,37 +114,32 @@ export class MyWagon extends CGFobject {
 
   displayWheelSpoke(angle) {
     const innerRadius = 0.25;
-    const outerRadius = 0.77;
+    const outerRadius = 0.86; 
     const length = outerRadius - innerRadius;
     const midpoint = innerRadius + length * 0.5;
-
     this.wagonWoodMaterial.apply();
     this.scene.pushMatrix();
     this.scene.translate(Math.cos(angle) * midpoint, Math.sin(angle) * midpoint, -0.32);
     this.scene.rotate(angle, 0, 0, 1);
     this.scene.rotate(Math.PI / 2, 0, 1, 0);
-    this.scene.scale(0.022, 0.022, length);
+    this.scene.scale(0.022, 0.022, length); 
     this.scene.translate(0, 0, -0.5);
     this.cylinderMesh.display();
     this.scene.popMatrix();
   }
 
-  displayAxle(z, wheelRotation, steeringAngle = 0) {
+  displayAxle(z, wheelRotation) {
     this.scene.pushMatrix();
-    this.scene.translate(0, 0.7, z);
+    this.scene.translate(0, 0.86, z); 
     this.drawCylinder(this.metalMaterial, 0, 0, 0, 0.045, 3.78, 0, Math.PI / 2, 0);
-    this.woodBox(0, 0.18, 0, 1.1, 0.045, 0.1);
-
+    this.woodBox(0, 0.32, 0, 1.2, 0.38, 0.25);
     this.scene.pushMatrix();
-    this.scene.translate(-1.85, 0, 0);
-    if (steeringAngle) this.scene.rotate(steeringAngle, 0, 1, 0);
+    this.scene.translate(-2.15, 0, 0);
     this.scene.rotate(-Math.PI / 2, 0, 1, 0);
     this.displayWheel(wheelRotation);
     this.scene.popMatrix();
-
     this.scene.pushMatrix();
-    this.scene.translate(1.85, 0, 0);
-    if (steeringAngle) this.scene.rotate(steeringAngle, 0, 1, 0);
+    this.scene.translate(2.15, 0, 0);
     this.scene.rotate(Math.PI / 2, 0, 1, 0);
     this.displayWheel(-wheelRotation);
     this.scene.popMatrix();
@@ -168,42 +165,37 @@ export class MyWagon extends CGFobject {
   }
 
   displayDriverSeat() {
-    this.woodBox(0, 1.08, 2.62, 1.24, 0.12, 0.34);
-    this.woodBox(0, 1.36, 2.34, 1.2, 0.28, 0.08);
+    this.woodBox(0, 1.08, 3.3, 1.24, 0.12, 0.4);
+    this.woodBox(0, 1.36, 3, 1.24, 0.35, 0.08);
   }
 
   displayRoof() {
     this.canvasMaterial.apply();
     this.scene.gl.disable(this.scene.gl.CULL_FACE);
     this.scene.pushMatrix();
-    this.scene.translate(0, 1.78, 0);
-    this.scene.scale(1.56, 1.18, 6.25);
+    this.scene.translate(0, 1.78, 1.56);
+    this.scene.scale(1.56, 1.18, 3.125); 
     this.scene.translate(0, 0, -0.5);
     this.roof.display();
     this.scene.popMatrix();
     this.scene.gl.enable(this.scene.gl.CULL_FACE);
 
-    for (let z = -2.85; z <= 2.0; z += 0.95) {
+    for (let z = 0.0; z <= 2.85; z += 0.95) {
       this.drawCylinder(this.metalMaterial, 0, 1.78, z, 0.024, 2.65, 0, Math.PI / 2, 0);
       this.woodBox(0, 1.85, z, 1.42, 0.035, 0.04);
     }
   }
 
   displayHarness() {
-    this.woodBox(0, 1.0, 4.6, 0.12, 0.12, 3.1);
-    this.woodBox(0, 1.15, 7.45, 1.05, 0.08, 0.08);
-    this.woodBox(-0.55, 1.12, 5.5, 0.045, 0.045, 1.8, 0.04, 0.08, 0);
-    this.woodBox(0.55, 1.12, 5.5, 0.045, 0.045, 1.8, 0.04, -0.08, 0);
+    this.woodBox(0, 1.0, 5, 0.12, 0.12, 2.8); 
+    this.woodBox(0, 1.15, 7.45, 1.05, 0.08, 0.08); 
+    this.woodBox(-0.55, 1.12, 5, 0.06, 0.06, 2.8, 0.04, 0.08, 0);
+    this.woodBox(0.55, 1.12, 5, 0.06, 0.06, 2.8, 0.04, -0.08, 0);
+    
     for (const x of [-0.52, 0.52]) {
-      this.drawCylinder(this.leatherMaterial, x, 1.35, 5.6, 0.018, 2.65);
-      this.drawCylinder(this.leatherMaterial, x * 1.15, 1.28, 5.65, 0.014, 2.55);
+      this.drawCylinder(this.leatherMaterial, x, 1.35, 5.8, 0.018, 3.4);
+      this.drawCylinder(this.leatherMaterial, x * 1.15, 1.28, 5.85, 0.014, 3.3);
       this.drawSphere(this.metalMaterial, x, 1.15, 7.45, 0.055, 0.055, 0.055);
-    }
-  }
-
-  displayDetails() {
-    for (const x of [-1.1, 1.1]) {
-      for (const z of [-2.4, 2.4]) this.drawSphere(this.metalMaterial, x, 1.13, z, 0.055, 0.055, 0.055);
     }
   }
 
@@ -221,16 +213,37 @@ export class MyWagon extends CGFobject {
     this.scene.popMatrix();
   }
 
-  display(wheelRotation = 0, steeringAngle = 0) {
+  displayHayBales(count) {
+    if (count < 1) return;
     this.scene.pushMatrix();
+    this.scene.translate(0, 1.9, -0.8); 
+    this.hayBaleCargo.display(); 
+    this.scene.popMatrix(); 
+    if (count < 2) return;
+    this.scene.pushMatrix();
+    this.scene.translate(0, 1.9, -1.5); 
+    this.hayBaleCargo.display();
+    this.scene.popMatrix();
+  }
+
+  display(wheelRotation = 0, steeringAngle = 0, carriedHayCount = 0) {
+    this.scene.pushMatrix();
+    this.scene.pushMatrix();
+    this.scene.translate(0, 0.75, 0);
     this.displayCabin();
     this.displayDriverSeat();
-    this.displayHarness();
-    this.displayAxle(-2.0, wheelRotation, 0);
-    this.displayAxle(2.0, wheelRotation, steeringAngle);
+    this.displayHayBales(carriedHayCount); 
     this.displayRoof();
-    this.displayDetails();
-    this.displayHorses();
+    this.scene.popMatrix();
+    this.displayAxle(-2.0, wheelRotation);
+    this.scene.pushMatrix();
+    this.scene.translate(0, 0, 2.0); 
+    this.scene.rotate(steeringAngle, 0, 1, 0);
+    this.scene.translate(0, 0, -2.0);
+    this.displayHarness();                 
+    this.displayAxle(2.0, wheelRotation);
+    this.displayHorses();                  
+    this.scene.popMatrix();
     this.scene.popMatrix();
   }
 

@@ -198,16 +198,16 @@ export class MyScene extends CGFscene {
     this.wagonSpeed = 0;
     this.wagonSteering = 0;
     this.wagonWheelAngle = 0;
-    this.wagonMaxSpeed = 8.0;
-    this.wagonAcceleration = 10.0;
+    this.wagonMaxSpeed = 12.0;
+    this.wagonAcceleration = 15.0;
     this.wagonBrakeRate = 12.0;
     this.wagonTurnRate = 1.35;
-    this.wagonSteerRate = 3.4;
-    this.wagonSteerReturnRate = 1.8;
-    this.wagonMaxSteer = Math.PI / 5;
+    this.wagonSteerRate = 1.2;
+    this.wagonSteerReturnRate = 0.9;
+    this.wagonMaxSteer = Math.PI / 8;
     this.wagonWheelRadius = 0.52;
     this.wagonGroundClearance = 0;
-    this.wagonTrackWidth = 2.22;
+    this.wagonTrackWidth = 4.3;
     this.wagonWheelBase = 2.4;
     this.dropZoneCenter = { x: 0, z: 2.3 };
     this.dropZoneRadius = 3.5;
@@ -267,7 +267,7 @@ export class MyScene extends CGFscene {
     this.wasPickupPressed = false;
     this.wasDropPressed = false;
 
-    this.wagonHitboxRadius = 0.9; 
+    this.wagonHitboxRadius = 0.4; 
     this.collisionCooldown = 0;
   }
 
@@ -322,7 +322,7 @@ export class MyScene extends CGFscene {
       
       for (const item of obstacles) {
         const dist = Math.hypot(this.wagonPosition.x - item.x, this.wagonPosition.z - item.z);
-        if (dist < (item.scale * 1.5) + this.wagonHitboxRadius) {
+        if (dist < (item.scale * 0.7) + this.wagonHitboxRadius) {
           hitSolid = true; break;
         }
       }
@@ -665,6 +665,8 @@ export class MyScene extends CGFscene {
   gameOver() {
     this.gameStatus = "GAMEOVER";
     this.wagonSpeed = 0;
+    this.totalDamageTaken = 0;
+    this.totalHealthRestored = 0;
   }
 
   generateCloudInstances() {
@@ -1155,7 +1157,7 @@ export class MyScene extends CGFscene {
     
     this.scale(0.6, 0.6, 0.6);
     
-    this.wagon.display(this.wagonWheelAngle, this.wagonSteering);
+    this.wagon.display(this.wagonWheelAngle, this.wagonSteering, this.carriedHayCount);
     this.popMatrix();
   }
 
