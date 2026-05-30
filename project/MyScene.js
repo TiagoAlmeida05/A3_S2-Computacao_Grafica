@@ -316,22 +316,62 @@ export class MyScene extends CGFscene {
   checkCollisions(dt) {
     if (this.collisionCooldown > 0) this.collisionCooldown -= dt;
 
-    if (this.collisionCooldown <= 0) {
-      let hitSolid = false;
-      const obstacles = [...this.rockInstances, ...this.pineInstances, ...this.leafyInstances, ...this.deadInstances];
-      
-      for (const item of obstacles) {
-        const dist = Math.hypot(this.wagonPosition.x - item.x, this.wagonPosition.z - item.z);
-        if (dist < (item.scale * 1.5) + this.wagonHitboxRadius) {
-          hitSolid = true; break;
-        }
-      }
+    let hitSolid = false;
 
-      if (hitSolid) {
-        this.applyHealthDamage(10);
-        this.collisionCooldown = 1.5;
-        this.wagonSpeed *= 0.3;
-      }
+    const horseOffsetDist = 3.5;
+    const horseHitboxRadius = 0.8; 
+
+    const resolveCircleCollision = (cx, cz, radius) => {
+        let dx = this.wagonPosition.x - cx;
+        let dz = this.wagonPosition.z - cz;
+        let dist = Math.hypot(dx, dz);
+        let minRadius = radius + this.wagonHitboxRadius;
+
+        if (dist < minRadius && dist > 0.001) {
+            hitSolid = true;
+            const overlap = minRadius - dist;
+            this.wagonPosition.x += (dx / dist) * overlap;
+            this.wagonPosition.z += (dz / dist) * overlap;
+        }
+
+        const currentHorseX = this.wagonPosition.x + Math.sin(this.wagonHeading) * horseOffsetDist;
+        const currentHorseZ = this.wagonPosition.z + Math.cos(this.wagonHeading) * horseOffsetDist;
+
+        dx = currentHorseX - cx;
+        dz = currentHorseZ - cz;
+        dist = Math.hypot(dx, dz);
+        minRadius = radius + horseHitboxRadius;
+
+        if (dist < minRadius && dist > 0.001) {
+            hitSolid = true;
+            const overlap = minRadius - dist;
+            this.wagonPosition.x += (dx / dist) * overlap;
+            this.wagonPosition.z += (dz / dist) * overlap;
+        }
+    };
+
+    const obstacles = [];
+    if (this.rockInstances) obstacles.push(...this.rockInstances);
+    if (this.pineInstances) obstacles.push(...this.pineInstances);
+    if (this.leafyInstances) obstacles.push(...this.leafyInstances);
+    if (this.deadInstances) obstacles.push(...this.deadInstances);
+
+    for (const item of obstacles) {
+        resolveCircleCollision(item.x, item.z, item.scale * 1.5);
+    }
+
+    resolveCircleCollision(0, -4.0, 3.8);      
+    resolveCircleCollision(3.6, -1.3, 2.0);    
+    resolveCircleCollision(6.4, -3.7, 2.0);    
+
+    if (hitSolid) {
+        this.wagonSpeed = 0; 
+
+        if (this.collisionCooldown <= 0) {
+            const randomDamage = Math.floor(Math.random() * (15 - 5 + 1)) + 5;
+            this.applyHealthDamage(randomDamage);
+            this.collisionCooldown = 1.5; 
+        }
     }
 
     let inWater = false;
@@ -339,7 +379,8 @@ export class MyScene extends CGFscene {
       for (const pond of this.pondInstances) {
         const pondRadius = Math.max(pond.scaleX, pond.scaleZ) * 0.8;
         if (Math.hypot(this.wagonPosition.x - pond.x, this.wagonPosition.z - pond.z) < pondRadius) {
-          inWater = true; break;
+          inWater = true; 
+          break;
         }
       }
     }
@@ -447,20 +488,44 @@ export class MyScene extends CGFscene {
 
   initHayPickups() {
     this.hayPickups = [];
-    const random = this.createSeededRandom(this.scatterSeed + 99);
     const halfSize = this.terrain.size * 0.5 * 0.85;
     let attempts = 0;
 
-    while (this.hayPickups.length < this.maxHayPickups && attempts < 150) {
+    const maxPickups = this.maxHayPickups || 5;
+
+    while (this.hayPickups.length < maxPickups && attempts < 150) {
         attempts++;
-        const x = (random() * 2 - 1) * halfSize;
-        const z = (random() * 2 - 1) * halfSize;
+        
+        const x = (Math.random() * 2 - 1) * halfSize;
+        const z = (Math.random() * 2 - 1) * halfSize;
 
         if (Math.hypot(x, z) < this.centerClearRadius + 4) continue;
-        if (this.isInsidePond(x, z, 2.0)) continue;
-        if (this.getTerrainSlope(x, z) > 0.4) continue;
+        if (typeof this.isInsidePond === 'function' && this.isInsidePond(x, z, 2.0)) continue;
+        if (typeof this.getTerrainSlope === 'function' && this.getTerrainSlope(x, z) > 0.4) continue;
 
-        const y = this.getGroundY(x, z, 0.4); 
+        let insideObstacle = false;
+        const obstacles = [];
+        
+        if (this.rockInstances) obstacles.push(...this.rockInstances);
+        if (this.pineInstances) obstacles.push(...this.pineInstances);
+        if (this.leafyInstances) obstacles.push(...this.leafyInstances);
+        if (this.deadInstances) obstacles.push(...this.deadInstances);
+
+        for (const item of obstacles) {
+            const dist = Math.hypot(x - item.x, z - item.z);
+            if (dist < (item.scale * 1.5) + 2.0) { 
+                insideObstacle = true; 
+                break;
+            }
+        }
+        
+        if (insideObstacle) continue; 
+
+        let y = 0;
+        if (typeof this.getGroundY === 'function') {
+            y = this.getGroundY(x, z, 0.4);
+        }
+        
         this.hayPickups.push(new MyHayPickup(this, x, z, y));
     }
   }
