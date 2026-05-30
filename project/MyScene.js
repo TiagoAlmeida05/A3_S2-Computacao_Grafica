@@ -146,6 +146,14 @@ export class MyScene extends CGFscene {
       "shaders/grass.vert",
       "shaders/grass.frag"
     );
+
+    this.arrowShader = new CGFshader(
+      this.gl,
+      "shaders/arrow.vert",
+      "shaders/arrow.frag"
+    );
+
+
     this.windTime = 0;
     this.enableWind = true;
     this.windDirection = [1.0, 0.25];
@@ -1025,7 +1033,7 @@ export class MyScene extends CGFscene {
     const currentTimeMillis = typeof performance !== "undefined" ? performance.now() : 0;
     for (const pickup of this.hayPickups) {
         const distanceToWagon = Math.hypot(this.wagonPosition.x - pickup.x, this.wagonPosition.z - pickup.z);
-        const isNearWagon = distanceToWagon < 25.0; 
+        const isNearWagon = distanceToWagon < 80.0; 
         
         pickup.display(currentTimeMillis, isNearWagon);
     }
@@ -1458,7 +1466,6 @@ export class MyScene extends CGFscene {
   }
 
   checkHayGameplayInteractions() {
-    // --- 1. MANUAL PICKUP ACTION (Key P) ---
     if (this.wagonInput.pickup) {
         for (const pickup of this.hayPickups) {
             if (pickup.isPickedUp) continue;
@@ -1480,7 +1487,7 @@ export class MyScene extends CGFscene {
         if (this.carriedHayCount > 0) {
             this.balesAtBarn += this.carriedHayCount;
             
-            const hpReward = 50 * this.carriedHayCount;
+            const hpReward = 20 * this.carriedHayCount;
             this.applyHealthRestoration(hpReward);
 
             this.carriedHayCount = 0; 

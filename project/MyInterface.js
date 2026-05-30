@@ -13,6 +13,16 @@ export class MyInterface extends CGFinterface {
 
         this.gui = new dat.GUI();
 
+        const statsFolder = this.gui.addFolder("Gameplay Stats");
+
+        statsFolder.add(this.scene, 'currentHealthPoints', 0, 100).name('Health').listen();
+        statsFolder.add(this.scene, 'totalDamageTaken').name('Damage Taken').listen();
+        statsFolder.add(this.scene, 'totalHealthRestored').name('Health Restored').listen();
+        statsFolder.add(this.scene, 'balesAtBarn').name('Bales Delivered').listen();
+        statsFolder.add(this.scene, 'scoreValue').name('Score (Time)').listen();
+
+        statsFolder.open(); 
+
         this.gui.add(this.scene, "displayPlane").name("Display Plane");
         this.gui.add(this.scene, "enableWind").name("Wind");
         this.firstPersonController = this.gui.add(this.scene, "firstPersonCamera")

@@ -21,32 +21,36 @@ export class MyHayPickup extends CGFobject {
     }
 
     display(currTime, isNearWagon) {
-        if (this.isPickedUp) return;
+    if (this.isPickedUp) return;
 
-        const timeSec = currTime * 0.001;
-        const bobbingOffset = Math.sin(timeSec * 4.0) * 0.3;
-        const rotationAngle = timeSec * 2.0;
+    const timeSec = currTime * 0.001;
+    // Notice: We deleted the bobbingOffset calculation here!
+    const rotationAngle = timeSec * 2.0;
 
+    this.scene.pushMatrix();
+    this.scene.translate(this.x, this.y, this.z);
+
+    if (isNearWagon) {
         this.scene.pushMatrix();
-        this.scene.translate(this.x, this.y, this.z);
-
-        if (isNearWagon) {
-            this.scene.pushMatrix();
-            this.scene.rotate(Math.PI / 2, 0, 1, 0); 
-            this.scene.scale(0.8, 0.8, 1.2);
-            this.bale.display();
-            this.scene.popMatrix();
-        }
-
-        this.arrowMaterial.apply();
-        this.scene.pushMatrix();
-        this.scene.translate(0, 2.0 + bobbingOffset, 0);
-        this.scene.rotate(rotationAngle, 0, 1, 0);
-        this.scene.rotate(Math.PI, 1, 0, 0); 
-        this.scene.scale(0.4, 0.7, 0.4);
-        this.arrow.display();
-        this.scene.popMatrix();
-
+        this.scene.rotate(Math.PI / 2, 0, 1, 0); 
+        this.scene.scale(0.8, 0.8, 1.2);
+        this.bale.display();
         this.scene.popMatrix();
     }
+
+    this.scene.setActiveShader(this.scene.arrowShader);
+    this.scene.arrowShader.setUniformsValues({ uTime: timeSec });
+
+    this.scene.pushMatrix();
+    this.scene.translate(0, 2.0, 0); 
+    this.scene.rotate(rotationAngle, 0, 1, 0);
+    this.scene.rotate(Math.PI, 1, 0, 0); 
+    this.scene.scale(0.4, 0.7, 0.4);
+    this.arrow.display();
+    this.scene.popMatrix();
+
+    this.scene.setActiveShader(this.scene.defaultShader); 
+
+    this.scene.popMatrix();
+}
 }
