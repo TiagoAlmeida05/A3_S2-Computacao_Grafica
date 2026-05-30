@@ -27,12 +27,10 @@ export class MyCylinder extends CGFobject {
         const y = Math.sin(ang);
         const u = i / this.slices; 
 
-        // OUTSIDE Vertex
         this.vertices.push(x, y, z);
         this.normals.push(x, y, 0);
         this.texCoords.push(u, v); 
 
-        // INSIDE Vertex
         this.vertices.push(x, y, z);
         this.normals.push(-x, -y, 0);
         this.texCoords.push(u, v);

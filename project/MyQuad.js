@@ -21,7 +21,6 @@ export class MyQuad extends CGFobject {
             1, -1, 0,	//3
         ];
 
-        //Counter-clockwise reference of vertices
         this.indices = [
             0, 1, 2,
             1, 3, 2

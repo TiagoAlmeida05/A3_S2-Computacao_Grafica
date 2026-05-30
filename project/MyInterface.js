@@ -13,6 +13,16 @@ export class MyInterface extends CGFinterface {
 
         this.gui = new dat.GUI();
 
+        const statsFolder = this.gui.addFolder("Gameplay Stats");
+
+        statsFolder.add(this.scene, 'currentHealthPoints', 0, 100).name('Health').listen();
+        statsFolder.add(this.scene, 'totalDamageTaken').name('Damage Taken').listen();
+        statsFolder.add(this.scene, 'totalHealthRestored').name('Health Restored').listen();
+        statsFolder.add(this.scene, 'balesAtBarn').name('Bales Delivered').listen();
+        statsFolder.add(this.scene, 'scoreValue').name('Score (Time)').listen();
+
+        statsFolder.open(); 
+
         this.gui.add(this.scene, "displayPlane").name("Display Plane");
         this.gui.add(this.scene, "enableWind").name("Wind");
         this.firstPersonController = this.gui.add(this.scene, "firstPersonCamera")
@@ -95,8 +105,15 @@ export class MyInterface extends CGFinterface {
 
             <div id="hud-screen" style="position: absolute; top: 20px; left: 20px; display: none; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
                 
-                <div style="color: #FFD700; font-size: 26px; font-weight: bold; margin-bottom: 15px; text-shadow: 2px 2px 2px black;">
+                <div style="color: #FFD700; font-size: 26px; font-weight: bold; margin-bottom: 5px; text-shadow: 2px 2px 2px black;">
                     Score: <span id="score-text">0</span>
+                </div>
+
+                <div style="color: #66b3ff; font-size: 16px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black;">
+                    Wagon Cargo: <span id="cargo-text">0 / 2</span> Bales
+                </div>
+                <div style="color: #ffcc66; font-size: 16px; font-weight: bold; margin-bottom: 15px; text-shadow: 1px 1px 2px black;">
+                    Delivered to Barn: <span id="delivered-text">0</span> Bales
                 </div>
                 
                 <div style="color: white; font-size: 18px; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black;">
@@ -138,9 +155,16 @@ export class MyInterface extends CGFinterface {
         this.scene.wagonSpeed = 0;
         this.scene.wagonSteering = 0;
         this.scene.wagonWheelAngle = 0;
+        
+        this.scene.balesAtBarn = 0;
+        this.scene.carriedHayCount = 0;
 
         this.scene.updateGameplayLabels();
         this.updateGameplayHUD();
+
+        if (this.scene.initHayPickups) {
+            this.scene.initHayPickups();
+        }
     }
 
     updateGameplayHUD() {
@@ -168,7 +192,6 @@ export class MyInterface extends CGFinterface {
 
         const healthPercent = Math.max(0, Math.min(100, this.scene.healthPercent || 0));
         
-        // Target your exact IDs from the HTML string
         const fill = document.getElementById('hp-bar');
         const hpLabel = document.getElementById('hp-text');
         const score = document.getElementById('score-text');
@@ -182,6 +205,16 @@ export class MyInterface extends CGFinterface {
         if (score) score.textContent = this.scene.scoreLabel || "0";
         if (damage) damage.textContent = `-${Number(this.scene.totalDamageTaken || 0).toFixed(1)}`;
         if (restored) restored.textContent = `+${Number(this.scene.totalHealthRestored || 0).toFixed(1)}`;
+
+        const cargoText = document.getElementById('cargo-text');
+        const deliveredText = document.getElementById('delivered-text');
+        
+        if (cargoText) {
+            cargoText.textContent = `${this.scene.carriedHayCount} / ${this.scene.maxCarriedHay}`;
+        }
+        if (deliveredText) {
+            deliveredText.textContent = this.scene.balesAtBarn;
+        }
     }
 
     update() {
@@ -205,7 +238,9 @@ export class MyInterface extends CGFinterface {
         const keyMap = {
             KeyW: "forward",
             KeyA: "left",
-            KeyD: "right"
+            KeyD: "right",
+            KeyP: "pickup",
+            KeyL: "drop"
         };
         const action = keyMap[event.code];
 
