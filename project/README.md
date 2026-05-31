@@ -47,11 +47,11 @@ To fulfill the advanced tier/bonus requirements, we successfully implemented:
 
 
 ## Screenshots
-1. **[Scene Overview](./project-t02-g02-1.png)**
-2. **[Flora and Scatter Details](./project-t02-g02-2.png)**
-3. **[Wagon and Horse Close-up](./project-t02-g02-3.png)**
-4. **[Animated GIF - Wind/Cloud Shaders](./project-t02-g02-4.gif)**
-5. **[Barn and Drop Zone](./project-t02-g02-5.png)**
+1. **[Scene Overview](./screenshots/project-t02-g02-1.png)**
+2. **[Flora and Scatter Details](./screenshots/project-t02-g02-2.png)**
+3. **[Wagon and Horse Close-up](./screenshots/project-t02-g02-3.png)**
+4. **[Animated GIF - Wind/Cloud Shaders](./screenshots/project-t02-g02-4.gif)**
+5. **[Barn and Drop Zone](./screenshots/project-t02-g02-5.png)**
 
 ## AI Usage Declaration
 During the development of this project, AI was used as an educational tool and debugging assistant. Specifically, AI was used to:
