@@ -198,16 +198,16 @@ export class MyScene extends CGFscene {
     this.wagonSpeed = 0;
     this.wagonSteering = 0;
     this.wagonWheelAngle = 0;
-    this.wagonMaxSpeed = 8.0;
-    this.wagonAcceleration = 10.0;
+    this.wagonMaxSpeed = 12.0;
+    this.wagonAcceleration = 15.0;
     this.wagonBrakeRate = 12.0;
     this.wagonTurnRate = 1.35;
-    this.wagonSteerRate = 3.4;
-    this.wagonSteerReturnRate = 1.8;
-    this.wagonMaxSteer = Math.PI / 5;
+    this.wagonSteerRate = 1.2;
+    this.wagonSteerReturnRate = 0.9;
+    this.wagonMaxSteer = Math.PI / 8;
     this.wagonWheelRadius = 0.52;
     this.wagonGroundClearance = 0;
-    this.wagonTrackWidth = 2.22;
+    this.wagonTrackWidth = 4.3;
     this.wagonWheelBase = 2.4;
     this.dropZoneCenter = { x: 0, z: 2.3 };
     this.dropZoneRadius = 3.5;
@@ -237,17 +237,17 @@ export class MyScene extends CGFscene {
     this.displayPlane = true;
 
     this.hayPickups = [];
-    this.maxHayPickups = 6;
+    this.maxHayPickups = 15;
     this.carriedHayCount = 0;
     this.maxCarriedHay = 2;
     
     
-    this.initHayPickups();
     this.initCloudSystem();
     this.initWaterPonds();
     this.initScatterElements();
     this.initGrassSystem();
     this.initFloraSystem();
+    this.initHayPickups();
   }
 
   initGameplayUIState() {
@@ -267,8 +267,11 @@ export class MyScene extends CGFscene {
     this.wasPickupPressed = false;
     this.wasDropPressed = false;
 
-    this.wagonHitboxRadius = 0.9; 
+    this.wagonHitboxRadius = 0.4; 
     this.collisionCooldown = 0;
+
+    this.lastDamageTaken = 0;
+    this.lastHealthRestored = 0;
   }
 
   applyHealthDamage(amount) {
@@ -276,6 +279,7 @@ export class MyScene extends CGFscene {
     if (damage <= 0) return;
 
     this.totalDamageTaken += damage; 
+    this.lastDamageTaken = damage; 
     this.currentHealthPoints = this.clamp(
       this.currentHealthPoints - damage,
       0,
@@ -289,6 +293,7 @@ export class MyScene extends CGFscene {
     if (restored <= 0) return;
 
     this.totalHealthRestored += restored;
+    this.lastHealthRestored = restored; 
     this.currentHealthPoints = this.clamp(
       this.currentHealthPoints + restored,
       0,
@@ -350,14 +355,20 @@ export class MyScene extends CGFscene {
         }
     };
 
-    const obstacles = [];
-    if (this.rockInstances) obstacles.push(...this.rockInstances);
-    if (this.pineInstances) obstacles.push(...this.pineInstances);
-    if (this.leafyInstances) obstacles.push(...this.leafyInstances);
-    if (this.deadInstances) obstacles.push(...this.deadInstances);
+    
+    if (this.rockInstances) {
+        for (const rock of this.rockInstances) {
+            resolveCircleCollision(rock.x, rock.z, rock.scale * 1.2); 
+        }
+    }
 
-    for (const item of obstacles) {
-        resolveCircleCollision(item.x, item.z, item.scale * 1.5);
+    const trees = [];
+    if (this.pineInstances) trees.push(...this.pineInstances);
+    if (this.leafyInstances) trees.push(...this.leafyInstances);
+    if (this.deadInstances) trees.push(...this.deadInstances);
+
+    for (const tree of trees) {
+        resolveCircleCollision(tree.x, tree.z, tree.scale * 0.5);
     }
 
     resolveCircleCollision(0, -4.0, 3.8);      
@@ -730,6 +741,8 @@ export class MyScene extends CGFscene {
   gameOver() {
     this.gameStatus = "GAMEOVER";
     this.wagonSpeed = 0;
+    this.totalDamageTaken = 0;
+    this.totalHealthRestored = 0;
   }
 
   generateCloudInstances() {
@@ -1136,11 +1149,14 @@ export class MyScene extends CGFscene {
     this.displayScatter();
 
     const currentTimeMillis = typeof performance !== "undefined" ? performance.now() : 0;
+    
     for (const pickup of this.hayPickups) {
         const distanceToWagon = Math.hypot(this.wagonPosition.x - pickup.x, this.wagonPosition.z - pickup.z);
-        const isNearWagon = distanceToWagon < 80.0; 
         
-        pickup.display(currentTimeMillis, isNearWagon);
+        const isNearWagon = distanceToWagon < 100.0; 
+        const isPickable = distanceToWagon < 6.0; 
+        
+        pickup.display(currentTimeMillis, isNearWagon, isPickable);
     }
 
     this.pushMatrix();
@@ -1220,7 +1236,7 @@ export class MyScene extends CGFscene {
     
     this.scale(0.6, 0.6, 0.6);
     
-    this.wagon.display(this.wagonWheelAngle, this.wagonSteering);
+    this.wagon.display(this.wagonWheelAngle, this.wagonSteering, this.carriedHayCount);
     this.popMatrix();
   }
 
@@ -1301,7 +1317,7 @@ export class MyScene extends CGFscene {
     this.wasDropPressed = dropPressed;
 
     if (pickupJustPressed && this.carriedHayCount < this.maxCarriedHay) {
-      const pickupRadius = 3.0;
+      const pickupRadius = 6.0;
       let nearestPickup = null;
       let nearestDist = Infinity;
 
@@ -1322,22 +1338,60 @@ export class MyScene extends CGFscene {
       if (nearestPickup) {
         nearestPickup.isPickedUp = true;
         this.carriedHayCount += 1;
-        this.applyHealthRestoration(8);
       }
     }
 
     if (dropJustPressed && this.isWagonInDropZone && this.carriedHayCount > 0) {
       this.balesAtBarn += this.carriedHayCount;
-      this.carriedHayCount = 0;
-      this.applyHealthRestoration(10);
-      this.updateGameplayLabels();
-
-      const allPicked = this.hayPickups.every((pickup) => pickup.isPickedUp);
-      if (allPicked) {
-        this.initHayPickups();
+      
+      const hpReward = 15 * this.carriedHayCount; 
+      this.applyHealthRestoration(hpReward);
+      
+      if (typeof this.updateGameplayLabels === 'function') {
+        this.updateGameplayLabels();
       }
+
+      const halfSize = this.terrain.size * 0.5 * 0.85;
+      const obstacles = [];
+      if (this.rockInstances) obstacles.push(...this.rockInstances);
+      if (this.pineInstances) obstacles.push(...this.pineInstances);
+      if (this.leafyInstances) obstacles.push(...this.leafyInstances);
+      if (this.deadInstances) obstacles.push(...this.deadInstances);
+
+      for (const pickup of this.hayPickups) {
+          if (pickup.isPickedUp) {
+              let newX, newZ, insideObstacle;
+              let attempts = 0;
+              
+              do {
+                  newX = (Math.random() * 2 - 1) * halfSize;
+                  newZ = (Math.random() * 2 - 1) * halfSize;
+                  insideObstacle = false;
+
+                  if (Math.hypot(newX, newZ) < this.centerClearRadius + 4) insideObstacle = true;
+                  else if (typeof this.isInsidePond === 'function' && this.isInsidePond(newX, newZ, 2.0)) insideObstacle = true;
+                  else if (typeof this.getTerrainSlope === 'function' && this.getTerrainSlope(newX, newZ) > 0.4) insideObstacle = true;
+                  else {
+                      for (const item of obstacles) {
+                          if (Math.hypot(newX - item.x, newZ - item.z) < (item.scale * 1.5) + 2.0) {
+                              insideObstacle = true; break;
+                          }
+                      }
+                  }
+                  attempts++;
+              } while (insideObstacle && attempts < 50);
+
+              pickup.x = newX;
+              pickup.z = newZ;
+              if (typeof this.getGroundY === 'function') pickup.y = this.getGroundY(newX, newZ, 0.4);
+              
+              pickup.isPickedUp = false; 
+          }
+      }
+
+      this.carriedHayCount = 0;
     }
-  }
+}
 
   updateWagon(currTime) {
     if (this.lastUpdateTime === null) {
@@ -1363,8 +1417,19 @@ export class MyScene extends CGFscene {
     const isBraking = this.wagonInput.braking;
     const isForward = this.wagonInput.forward && !isBraking;
 
-    const targetSpeed = isForward ? this.wagonMaxSpeed : 0;
-    const speedRate = isBraking ? this.wagonBrakeRate : this.wagonAcceleration;
+    let currentMaxSpeed = this.wagonMaxSpeed;
+    let currentAcceleration = this.wagonAcceleration;
+
+    if (this.carriedHayCount === 1) {
+        currentMaxSpeed = this.wagonMaxSpeed * 0.85;         
+        currentAcceleration = this.wagonAcceleration * 0.85; 
+    } else if (this.carriedHayCount >= 2) {
+        currentMaxSpeed = this.wagonMaxSpeed * 0.65;         
+        currentAcceleration = this.wagonAcceleration * 0.65; 
+    }
+
+    const targetSpeed = isForward ? currentMaxSpeed : 0;
+    const speedRate = isBraking ? this.wagonBrakeRate : currentAcceleration;
     this.wagonSpeed = this.approach(this.wagonSpeed, targetSpeed, speedRate * dt);
 
     if (Math.abs(this.wagonSpeed) < 0.001) {
@@ -1384,9 +1449,9 @@ export class MyScene extends CGFscene {
     this.wagonWheelAngle -= distance / this.wagonWheelRadius;
     this.updateDropZoneStatus();
 
-      if (this.wagon && this.wagon.update) {
-          this.wagon.update(this.wagonSpeed, dt);
-      }
+    if (this.wagon && this.wagon.update) {
+        this.wagon.update(this.wagonSpeed, dt);
+    }
   }
 
   displayGrass() {

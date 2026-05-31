@@ -16,8 +16,8 @@ export class MyInterface extends CGFinterface {
         const statsFolder = this.gui.addFolder("Gameplay Stats");
 
         statsFolder.add(this.scene, 'currentHealthPoints', 0, 100).name('Health').listen();
-        statsFolder.add(this.scene, 'totalDamageTaken').name('Damage Taken').listen();
-        statsFolder.add(this.scene, 'totalHealthRestored').name('Health Restored').listen();
+        statsFolder.add(this.scene, 'lastDamageTaken').name('Instant Damage').listen();
+        statsFolder.add(this.scene, 'lastHealthRestored').name('Instant Restore').listen();
         statsFolder.add(this.scene, 'balesAtBarn').name('Bales Delivered').listen();
         statsFolder.add(this.scene, 'scoreValue').name('Score (Time)').listen();
 

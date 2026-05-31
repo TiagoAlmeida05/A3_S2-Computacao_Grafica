@@ -20,7 +20,7 @@ export class MyHayPickup extends CGFobject {
         this.arrowMaterial.setShininess(20.0);
     }
 
-    display(currTime, isNearWagon) {
+    display(currTime, isNearWagon, isPickable) {
     if (this.isPickedUp) return;
 
     const timeSec = currTime * 0.001;
@@ -38,18 +38,26 @@ export class MyHayPickup extends CGFobject {
     }
 
     this.scene.setActiveShader(this.scene.arrowShader);
-    this.scene.arrowShader.setUniformsValues({ uTime: timeSec });
+    
+    const arrowColor = isPickable ? [1.0, 0.1, 0.1] : [0.1, 1.0, 0.1];
+
+    this.scene.arrowShader.setUniformsValues({ 
+        uTime: timeSec,
+        uColor: arrowColor 
+    });
 
     this.scene.pushMatrix();
-    this.scene.translate(0, 2.0, 0); 
+    this.scene.translate(0, 2.6, 0); 
     this.scene.rotate(rotationAngle, 0, 1, 0);
     this.scene.rotate(Math.PI, 1, 0, 0); 
-    this.scene.scale(0.4, 0.7, 0.4);
+    
+    this.scene.scale(0.7, 1.2, 0.7); 
+    
     this.arrow.display();
     this.scene.popMatrix();
 
     this.scene.setActiveShader(this.scene.defaultShader); 
 
     this.scene.popMatrix();
-}
+  }
 }

@@ -32,7 +32,7 @@ export class MyHorse extends CGFobject {
   update(speed, dt) {
     const amount = Math.min(Math.abs(speed) / 18.0, 1.0);
     this.speedFactor += (amount - this.speedFactor) * Math.min(dt * 8.0, 1.0);
-    this.walkCycle += (2.0 + amount * 7.0) * Math.max(Math.abs(speed), 1.0) * 0.18 * dt;
+    this.walkCycle += (2.0 + amount * 7.0) * Math.max(Math.abs(speed), 1.0) * 0.5 * dt;
   }
 
   drawCylinder(material, x, y, z, radius, length, rx = 0, ry = 0, rz = 0) {
@@ -48,32 +48,11 @@ export class MyHorse extends CGFobject {
     this.scene.popMatrix();
   }
 
-  drawSphere(material, x, y, z, sx, sy, sz) {
-    material.apply();
-    this.scene.pushMatrix();
-    this.scene.translate(x, y, z);
-    this.scene.scale(sx, sy, sz);
-    this.joint.display();
-    this.scene.popMatrix();
-  }
-
   displayHarness(phase) {
     const reinSwing = Math.sin(phase) * 0.04 * this.speedFactor;
     for (const x of [-0.32, 0.32]) {
       this.drawCylinder(this.leatherMaterial, x, 1.5 + reinSwing, 0.35, 0.018, 0.95, Math.PI / 2, 0, 0);
       this.drawCylinder(this.leatherMaterial, x, 1.35, 0.9, 0.014, 0.8, 0, Math.PI / 2, 0);
-    }
-  }
-
-  displayHoofCues(phase) {
-    const gait = [phase, phase + Math.PI, phase + Math.PI, phase];
-    const positions = [[-0.23, 0.58], [0.23, 0.58], [-0.23, -0.56], [0.23, -0.56]];
-
-    for (let i = 0; i < positions.length; i++) {
-      const [x, z] = positions[i];
-      const swing = Math.sin(gait[i]) * 0.18 * this.speedFactor;
-      const lift = Math.max(0, Math.sin(gait[i] + 0.6)) * 0.08 * this.speedFactor;
-      this.drawSphere(this.hoofMaterial, x, 0.08 + lift, z + swing, 0.08, 0.045, 0.11);
     }
   }
 
@@ -97,7 +76,6 @@ export class MyHorse extends CGFobject {
     this.scene.popMatrix();
     this.scene.gl.enable(this.scene.gl.CULL_FACE);
 
-    this.displayHoofCues(phase);
     this.displayHarness(phase);
     this.scene.popMatrix();
   }

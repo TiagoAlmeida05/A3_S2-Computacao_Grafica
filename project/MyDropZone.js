@@ -28,7 +28,13 @@ export class MyDropZone extends CGFobject {
     }
 
     if (currentMat) currentMat.apply();
+
+    this.scene.gl.enable(this.scene.gl.POLYGON_OFFSET_FILL);
+    this.scene.gl.polygonOffset(-2.0, -2.0); 
+    
     super.display(); 
+    
+    this.scene.gl.disable(this.scene.gl.POLYGON_OFFSET_FILL);
   }
 
   initBuffers() {
@@ -41,7 +47,7 @@ export class MyDropZone extends CGFobject {
 
     const centerWorldX = 0.0 + this.centerX;
     const centerWorldZ = -4.0 + this.centerZ;
-    const centerWorldY = this.scene.getGroundY(centerWorldX, centerWorldZ, 0.035);
+    const centerWorldY = this.scene.getGroundY(centerWorldX, centerWorldZ, 0.18);
     const centerLocalY = centerWorldY - barnBaseY;
 
     this.vertices.push(this.centerX, centerLocalY, this.centerZ);
@@ -58,7 +64,7 @@ export class MyDropZone extends CGFobject {
 
         const worldX = 0.0 + localX;
         const worldZ = -4.0 + localZ;
-        const worldY = this.scene.getGroundY(worldX, worldZ, 0.035);
+        const worldY = this.scene.getGroundY(worldX, worldZ, 0.18);
         const localY = worldY - barnBaseY;
 
         this.vertices.push(localX, localY, localZ);
