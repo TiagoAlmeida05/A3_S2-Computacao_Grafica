@@ -131,7 +131,12 @@ export class MyInterface extends CGFinterface {
 
             <div id="game-over-screen" style="position: absolute; width: 100%; height: 100%; background: rgba(100,0,0,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto;">
                 <h1 style="color: white; font-size: 70px; margin-bottom: 10px; text-shadow: 2px 2px 4px black;">GAME OVER</h1>
-                <h2 style="color: lightgray; font-size: 30px; margin-bottom: 40px;">The horses are too tired to continue!</h2>
+                <h2 style="color: lightgray; font-size: 30px; margin-bottom: 20px;">The horses are too tired to continue!</h2>
+                
+                <div style="color: #FFD700; font-size: 45px; font-weight: bold; margin-bottom: 40px; text-shadow: 2px 2px 4px black;">
+                    Final Score: <span id="final-score-text">0</span>
+                </div>
+
                 <button id="restart-btn" style="padding: 15px 40px; font-size: 24px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">PLAY AGAIN</button>
             </div>
         `;
@@ -182,7 +187,11 @@ export class MyInterface extends CGFinterface {
         } else if (this.scene.gameStatus === "HP Depleted" || this.scene.gameStatus === "GAMEOVER") {
             if (startScreen) startScreen.style.display = "none";
             if (gameOverScreen) gameOverScreen.style.display = "flex";
-            if (hud) hud.style.display = "none";
+            if (hud) hud.style.display = "none"; 
+            const finalScore = document.getElementById("final-score-text");
+            if (finalScore) {
+                finalScore.textContent = this.scene.scoreLabel || "0";
+        }
             return;
         } else {
             if (startScreen) startScreen.style.display = "none";
